@@ -1,0 +1,23 @@
+<h1>Pepevents</h1>
+
+{% if user.is_authenticated %}
+
+<p>Привет, {{ user.username }}</p>
+
+<a href="/accounts/logout/">
+    Выйти
+</a>
+
+{% else %}
+
+<a href="/accounts/discord/login/">
+    Войти через Discord
+</a>
+
+<br><br>
+
+<a href="/accounts/microsoft/login/">
+    Войти через Microsoft
+</a>
+
+{% endif %}
