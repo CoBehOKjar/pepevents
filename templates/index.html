@@ -1,23 +1,105 @@
-<h1>Pepevents</h1>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pepevents</title>
 
-{% if user.is_authenticated %}
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-<p>Привет, {{ user.username }}</p>
+        body {
+            background: #1e1e1e;
+            color: #f0f0f0;
 
-<a href="/accounts/logout/">
-    Выйти
-</a>
+            font-family: Arial, Helvetica, sans-serif;
 
-{% else %}
+            display: flex;
+            justify-content: center;
+            align-items: center;
 
-<a href="/accounts/discord/login/">
-    Войти через Discord
-</a>
+            min-height: 100vh;
+        }
 
-<br><br>
+        .container {
+            text-align: center;
+            background: #2b2b2b;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,.35);
+            min-width: 350px;
+        }
 
-<a href="/accounts/microsoft/login/">
-    Войти через Microsoft
-</a>
+        h1 {
+            margin-bottom: 25px;
+        }
 
-{% endif %}
+        p {
+            margin-bottom: 20px;
+        }
+
+        a {
+            display: inline-block;
+
+            background: #5865F2;
+            color: white;
+
+            text-decoration: none;
+
+            padding: 12px 24px;
+            border-radius: 8px;
+
+            margin: 8px;
+
+            transition: .2s;
+        }
+
+        a:hover {
+            background: #4752C4;
+        }
+
+        .logout {
+            background: #444;
+        }
+
+        .logout:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <h1>Pepevents</h1>
+
+    {% if user.is_authenticated %}
+
+        <p>Привет, {{ user.username }}!</p>
+
+        <a href="/accounts/logout/" class="logout">
+            Выйти
+        </a>
+
+    {% else %}
+
+        <a href="/accounts/discord/login/">
+            Войти через Discord
+        </a>
+
+        <br>
+
+        <a href="/accounts/microsoft/login/">
+            Войти через Microsoft
+        </a>
+
+    {% endif %}
+
+</div>
+
+</body>
+</html>

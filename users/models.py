@@ -20,12 +20,22 @@ class Profile(models.Model):
 
     avatar = models.URLField(blank=True)
 
-    minecraft_nick = models.CharField(
-        max_length=16,
-        blank=True,
-    )
-
-    is_organizer = models.BooleanField(default=False)
-
     def __str__(self):
         return self.username
+
+
+class MinecraftAccount(models.Model):
+    profile = models.ForeignKey(
+        Profile,
+        on_delete=models.CASCADE,
+        related_name="minecraft_accounts",
+    )
+
+    uuid = models.UUIDField(unique=True)
+
+    nickname = models.CharField(max_length=16)
+
+    avatar = models.URLField(blank=True)
+
+    def __str__(self):
+        return f"{self.nickname} ({self.profile.username})"

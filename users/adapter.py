@@ -20,7 +20,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
         Profile.objects.update_or_create(
             user=user,
             defaults={
-                "discord_id": data["id"],
+                "discord_id": int(data["id"]),
                 "username": data["username"],
                 "global_name": data.get("global_name") or "",
                 "avatar": avatar,
