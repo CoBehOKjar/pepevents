@@ -1,7 +1,7 @@
 from django.contrib.auth.decorators import login_required
-from django.db.models import Model
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Event
+from .forms import EventForm
 
 
 def event_list(request):
@@ -15,9 +15,6 @@ def event_list(request):
         },
     )
 
-def new_event(request):
-    pass
-
 def event_page(request, slug):
     event = get_object_or_404(Event, slug=slug)
 
@@ -27,4 +24,45 @@ def event_page(request, slug):
         {
             "event": event,
         }
+    )
+
+@login_required
+def new_event(request):
+    if request.method == "POST":
+        form = EventForm(request.POST)
+        event = None
+
+        if form.is_valid():
+            event = form.save()
+
+            return redirect("event_page", slug=event.slug)
+
+    else:
+        form = EventForm()
+
+    return render(
+        request,
+        "events/new_event.html",
+        {"form": form}
+    )
+
+@login_required
+def edit_event(request, slug):
+    if request.method == "POST":
+        instance = get_object_or_404(Event, slug=slug)
+        form = EventForm(request.POST or None, instance=instance)
+        event = None
+
+        if form.is_valid():
+            event = form.save()
+
+            return redirect("event_page", slug=event.slug)
+
+    else:
+        form = EventForm()
+
+    return render(
+        request,
+        "events/new_event.html",
+        {"form": form}
     )

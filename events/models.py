@@ -13,6 +13,7 @@ class Statuses(models.TextChoices):
 
 class Roles(models.TextChoices):
     CREATOR = "CREATOR", "Создатель"
+    SUPPORT = "SUPPORT", "Ст. Организатор"
     ORGANIZER = "ORGANIZER", "Организатор"
     PLAYER = "PLAYER", "Участник"
 
@@ -25,7 +26,6 @@ class Event(models.Model):
 
     name = models.CharField(
         max_length=100,
-        blank=True,
     )
 
     description = models.TextField(
@@ -54,6 +54,25 @@ class Event(models.Model):
         choices=Statuses.choices,
         default=Statuses.WIP,
     )
+
+    #Permissions check
+    def can_delete(self, profile):
+        if profile.membership[self] and profile.membership.role == "CREATOR":
+            return True
+        else:
+            return False
+
+    def can_edit(self, profile):
+        if profile.membership[self] and profile.membership.role == ("CREATOR" or "SUPPORT"):
+            return True
+        else:
+            return False
+
+    def can_manage(self, profile):
+        if profile.membership[self] and profile.membership.role == ("CREATOR" or "SUPPORT" or "ORGANIZER"):
+            return True
+        else:
+            return False
 
     def save(self, *args, **kwargs):
         if self.slug == "":
