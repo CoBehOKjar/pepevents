@@ -31,6 +31,8 @@ class Event(models.Model):
 
     end_datetime = models.DateTimeField()
 
+    max_players = models.IntegerField()
+
     status = models.CharField(
         max_length=20,
         choices=Statuses.choices,
@@ -54,6 +56,8 @@ class Team(models.Model):
         max_length=7,
         help_text="HEX color #ff0000",
     )
+
+    max_players = models.IntegerField()
 
     def __str__(self):
         return f"{self.event.name} - {self.name}"

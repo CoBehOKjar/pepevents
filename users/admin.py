@@ -7,13 +7,13 @@ from .models import Profile, MinecraftAccount
 class ProfileAdmin(admin.ModelAdmin):
     list_display = (
         "username",
-        "global_name",
+        "display_name",
         "discord_id",
     )
 
     search_fields = (
         "username",
-        "global_name",
+        "display_name",
         "discord_id",
     )
 
