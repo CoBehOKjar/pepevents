@@ -9,11 +9,18 @@ class Profile(models.Model):
         related_name="profile",
     )
 
-    discord_id = models.BigIntegerField(unique=True)
+    discord_id = models.BigIntegerField(
+        unique=True,
+        null=True,
+        blank=True,
+    )
 
-    username = models.CharField(max_length=32)
+    username = models.CharField(
+        max_length=32,
+        unique=True,
+    )
 
-    global_name = models.CharField(
+    display_name = models.CharField(
         max_length=32,
         blank=True,
     )
@@ -31,11 +38,15 @@ class MinecraftAccount(models.Model):
         related_name="minecraft_accounts",
     )
 
-    uuid = models.UUIDField(unique=True)
+    uuid = models.UUIDField(
+        unique=True,
+        null=True,
+        blank=True,
+    )
 
     nickname = models.CharField(max_length=16)
 
-    avatar = models.URLField(blank=True)
+    skin_avatar = models.URLField(blank=True)
 
     def __str__(self):
         return f"{self.nickname} ({self.profile.username})"

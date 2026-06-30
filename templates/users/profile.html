@@ -1,0 +1,38 @@
+<h1>Личный кабинет</h1>
+
+<img src="{{ profile.avatar }}" width="100">
+
+<h2>{{ user.profile.global_name }}</h2>
+
+<p>@{{ user.profile.username }}</p>
+
+<h2>Minecraft аккаунты</h2>
+
+{% for account in accounts %}
+
+<div style="border:1px solid #333; padding:10px; margin-bottom:10px;">
+
+    <p><b>{{ account.nickname }}</b></p>
+
+    {% if account.uuid %}
+        <p>UUID: {{ account.uuid }}</p>
+    {% else %}
+        <p style="color:orange;">Не подтверждён</p>
+    {% endif %}
+
+    <form method="post" action="{% url 'delete_account' account.pk %}">
+        {% csrf_token %}
+        <button type="submit" style="color:red;">
+            Удалить
+        </button>
+    </form>
+
+</div>
+
+{% empty %}
+    <p>Нет аккаунтов</p>
+{% endfor %}
+
+<a href="{% url 'add_account' %}">
+    Добавить аккаунт
+</a>

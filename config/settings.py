@@ -150,3 +150,5 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 SOCIALACCOUNT_ADAPTER = "users.adapter.SocialAccountAdapter"
+
+LOGIN_REDIRECT_URL = "/me/"

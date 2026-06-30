@@ -81,6 +81,10 @@
 
         <p>Привет, {{ user.username }}!</p>
 
+        <a href="{% url 'me' %}">
+            Личный кабинет
+        </a>
+
         <a href="/accounts/logout/" class="logout">
             Выйти
         </a>
@@ -89,12 +93,6 @@
 
         <a href="/accounts/discord/login/">
             Войти через Discord
-        </a>
-
-        <br>
-
-        <a href="/accounts/microsoft/login/">
-            Войти через Microsoft
         </a>
 
     {% endif %}
