@@ -25,3 +25,9 @@ class MinecraftAccountAdmin(admin.ModelAdmin):
         "profile",
         "uuid",
     )
+
+    search_fields = (
+        "nickname",
+        "profile",
+        "uuid",
+    )

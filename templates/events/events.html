@@ -1,0 +1,25 @@
+<h1>Ивенты</h1>
+
+{% for event in events %}
+
+<div style="border:1px solid #333; padding:10px; margin-bottom:10px;">
+
+    <a href="{% url 'event_page' event.slug %}">
+        {{ event.name }}
+    </a>
+
+    {% if event.description %}
+        <p>{{ event.description }}</p>
+    {% else %}
+        <p>Без описания</p>
+    {% endif %}
+
+</div>
+
+{% empty %}
+    <p>Но никто не пришёл</p>
+{% endfor %}
+
+<a href="{% url 'new' %}">
+    Создать ивент
+</a>

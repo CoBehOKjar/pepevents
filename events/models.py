@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from slugify import slugify
 from users.models import Profile, MinecraftAccount
 
 
@@ -17,27 +18,48 @@ class Roles(models.TextChoices):
 
 
 class Event(models.Model):
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(
+        unique=True,
+        blank=True,
+    )
 
-    name = models.CharField(max_length=100)
+    name = models.CharField(
+        max_length=100,
+        blank=True,
+    )
 
-    description = models.TextField(max_length=500)
+    description = models.TextField(
+        max_length=500,
+        blank=True,
+    )
 
-    info = models.TextField(max_length=20000)
+    info = models.TextField(
+        max_length=20000,
+        blank=True,
+    )
 
-    rules = models.TextField(max_length=40000)
+    rules = models.TextField(
+        max_length=40000,
+        blank=True,
+    )
 
-    start_datetime = models.DateTimeField()
+    start_datetime = models.DateTimeField(blank=True, null=True)
 
-    end_datetime = models.DateTimeField()
+    end_datetime = models.DateTimeField(blank=True, null=True)
 
-    max_players = models.IntegerField()
+    max_players = models.IntegerField(null=True, blank=True)
 
     status = models.CharField(
         max_length=20,
         choices=Statuses.choices,
         default=Statuses.WIP,
     )
+
+    def save(self, *args, **kwargs):
+        if self.slug == "":
+            self.slug = slugify(self.name)
+
+        super(Event, self).save(*args, **kwargs)
 
     def __str__(self):
         return self.name
