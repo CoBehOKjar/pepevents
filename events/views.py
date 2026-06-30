@@ -1,6 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Event
+
+from .models import Event, EventMember
 from .forms import EventForm
 
 
@@ -29,16 +30,24 @@ def event_page(request, slug):
 @login_required
 def new_event(request):
     if request.method == "POST":
-        form = EventForm(request.POST)
-        event = None
+        form = EventForm(request.POST, profile=request.user.profile)
 
         if form.is_valid():
+            minecraft_account = form.cleaned_data["minecraft_account"]
             event = form.save()
+            EventMember.objects.create(
+                event=event,
+                profile=request.user.profile,
+                role="CREATOR",
+                minecraft_account=minecraft_account,
+            )
 
             return redirect("event_page", slug=event.slug)
 
     else:
-        form = EventForm()
+        form = EventForm(
+            profile=request.user.profile,
+        )
 
     return render(
         request,
@@ -48,8 +57,8 @@ def new_event(request):
 
 @login_required
 def edit_event(request, slug):
+    instance = get_object_or_404(Event, slug=slug)
     if request.method == "POST":
-        instance = get_object_or_404(Event, slug=slug)
         form = EventForm(request.POST or None, instance=instance)
         event = None
 

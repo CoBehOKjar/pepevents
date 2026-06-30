@@ -1,7 +1,11 @@
 from django import forms
-from .models import Event
+from .models import Event, MinecraftAccount
 
 class EventForm(forms.ModelForm):
+    minecraft_account = forms.ModelChoiceField(
+        queryset=MinecraftAccount.objects.none()
+    )
+
     class Meta:
         model = Event
         fields = [
@@ -14,3 +18,11 @@ class EventForm(forms.ModelForm):
             "end_datetime",
             "max_players",
         ]
+
+    def __init__(self, *args, profile=None, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if profile:
+            self.fields["minecraft_account"].queryset = (
+                profile.minecraft_accounts.all()
+            )

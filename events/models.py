@@ -18,6 +18,14 @@ class Roles(models.TextChoices):
     PLAYER = "PLAYER", "Участник"
 
 
+def _has_role(event, profile, roles):
+    event_member = EventMember.objects.filter(event=event, profile=profile).first()
+
+    if not event_member:
+        return False
+
+    return event_member.role in roles
+
 class Event(models.Model):
     slug = models.SlugField(
         unique=True,
@@ -57,22 +65,13 @@ class Event(models.Model):
 
     #Permissions check
     def can_delete(self, profile):
-        if profile.membership[self] and profile.membership.role == "CREATOR":
-            return True
-        else:
-            return False
+        return _has_role(self, profile, ["CREATOR"])
 
     def can_edit(self, profile):
-        if profile.membership[self] and profile.membership.role == ("CREATOR" or "SUPPORT"):
-            return True
-        else:
-            return False
+        return _has_role(self, profile, ["CREATOR", "SUPPORT"])
 
     def can_manage(self, profile):
-        if profile.membership[self] and profile.membership.role == ("CREATOR" or "SUPPORT" or "ORGANIZER"):
-            return True
-        else:
-            return False
+        return _has_role(self, profile, ["CREATOR", "SUPPORT", "ORGANIZER"])
 
     def save(self, *args, **kwargs):
         if self.slug == "":
