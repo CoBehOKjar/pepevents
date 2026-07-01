@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 
 from .models import Event, EventMember
-from .forms import EventForm
+from .forms import EventForm, TeamFormSet
 
 
 def event_list(request):
@@ -30,11 +30,17 @@ def event_page(request, slug):
 @login_required
 def new_event(request):
     if request.method == "POST":
-        form = EventForm(request.POST, profile=request.user.profile)
+        event_form = EventForm(request.POST, profile=request.user.profile)
 
-        if form.is_valid():
-            minecraft_account = form.cleaned_data["minecraft_account"]
-            event = form.save()
+        if event_form.is_valid():
+            minecraft_account = event_form.cleaned_data["minecraft_account"]
+            event = event_form.save()
+
+            team_formset = TeamFormSet(request.POST, instance=event)
+
+            if team_formset.is_valid():
+                team_formset.save()
+
             EventMember.objects.create(
                 event=event,
                 profile=request.user.profile,
@@ -45,14 +51,15 @@ def new_event(request):
             return redirect("event_page", slug=event.slug)
 
     else:
-        form = EventForm(
+        event_form = EventForm(
             profile=request.user.profile,
         )
+        team_formset = TeamFormSet(instance=Event())
 
     return render(
         request,
-        "events/new_event.html",
-        {"form": form}
+        "events/new_or_edit_event.html",
+        {"event_form": event_form, "team_formset": team_formset}
     )
 
 @login_required
@@ -72,6 +79,6 @@ def edit_event(request, slug):
 
     return render(
         request,
-        "events/new_event.html",
+        "events/new_or_edit_event.html",
         {"form": form}
     )

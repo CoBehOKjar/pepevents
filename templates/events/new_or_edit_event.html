@@ -1,0 +1,15 @@
+<h1>Создать ивент</h1>
+
+<form method="post">
+    {% csrf_token %}
+
+    {{ event_form.as_p }}
+
+    {{ team_formset.management_form }}
+
+    {% for form in team_formset %}
+        {{ form.as_p }}
+    {% endfor %}
+
+    <button>Создать</button>
+</form>

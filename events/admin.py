@@ -1,6 +1,7 @@
 from django.contrib import admin
 
-from .models import Event
+from .models import Event, EventMember, Team
+
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
@@ -17,4 +18,36 @@ class EventAdmin(admin.ModelAdmin):
         "slug",
         "name",
         "description",
+    )
+
+@admin.register(Team)
+class TeamAdmin(admin.ModelAdmin):
+    list_display = (
+        "event",
+        "name",
+        "color",
+        "max_players",
+    )
+
+    search_fields = (
+        "event",
+        "name",
+        "color",
+    )
+
+@admin.register(EventMember)
+class EventMemberAdmin(admin.ModelAdmin):
+    list_display = (
+        "event",
+        "profile",
+        "minecraft_account",
+        "role",
+        "team",
+        "joined_at",
+    )
+
+    search_fields = (
+        "event",
+        "profile",
+        "minecraft_account",
     )

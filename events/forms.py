@@ -1,5 +1,7 @@
 from django import forms
-from .models import Event, MinecraftAccount
+from django.forms.models import inlineformset_factory
+
+from .models import Event, MinecraftAccount, Team
 
 class EventForm(forms.ModelForm):
     minecraft_account = forms.ModelChoiceField(
@@ -26,3 +28,20 @@ class EventForm(forms.ModelForm):
             self.fields["minecraft_account"].queryset = (
                 profile.minecraft_accounts.all()
             )
+
+class TeamForm(forms.ModelForm):
+    class Meta:
+        model = Team
+        fields = [
+            "name",
+            "color",
+            "max_players",
+        ]
+
+TeamFormSet = inlineformset_factory(
+    Event,
+    Team,
+    form=TeamForm,
+    extra=1,
+    can_delete=True,
+)

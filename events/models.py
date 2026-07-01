@@ -51,6 +51,11 @@ class Event(models.Model):
         blank=True,
     )
 
+    allow_team_creation = models.BooleanField(
+        default=True,
+        verbose_name="Разрешить участникам создавать команды",
+    )
+
     start_datetime = models.DateTimeField(blank=True, null=True)
 
     end_datetime = models.DateTimeField(blank=True, null=True)
