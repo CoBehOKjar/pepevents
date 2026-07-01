@@ -28,41 +28,65 @@ def _has_role(event, profile, roles):
 
 class Event(models.Model):
     slug = models.SlugField(
+        "Ссылка",
         unique=True,
         blank=True,
+        help_text="Используется в URL для ссылки на страницу ивента. Например: peepo-hui",
     )
 
     name = models.CharField(
+        "Название",
         max_length=100,
     )
 
     description = models.TextField(
+        "Краткое описание",
         max_length=500,
         blank=True,
     )
 
     info = models.TextField(
+        "Информация",
         max_length=20000,
         blank=True,
+        help_text="Все подробности об ивенте",
     )
 
     rules = models.TextField(
+        "Правила",
         max_length=40000,
         blank=True,
+        help_text="Все правила ивента",
     )
 
     allow_team_creation = models.BooleanField(
+        "Разрешить участникам создавать свои команды",
         default=True,
-        verbose_name="Разрешить участникам создавать команды",
+        help_text="Если нет - участники смогут присоедениться только к существующим командам",
     )
 
-    start_datetime = models.DateTimeField(blank=True, null=True)
+    start_datetime = models.DateTimeField(
+        "Время начала ивента",
+        blank=True,
+        null=True,
+    )
 
-    end_datetime = models.DateTimeField(blank=True, null=True)
+    end_datetime = models.DateTimeField(
+        "Время окончания ивента",
+        blank=True,
+        null=True,
+        help_text="Примерное или точное",
+    )
 
-    max_players = models.IntegerField(null=True, blank=True)
+    max_players = models.IntegerField(
+        "Максимум участников",
+        null=True,
+        blank=True,
+        help_text="Организаторы вне команд не учитываются"
+    )
 
     status = models.CharField(
+        "Текущий статус ивента",
         max_length=20,
         choices=Statuses.choices,
         default=Statuses.WIP,
@@ -93,16 +117,21 @@ class Team(models.Model):
         Event,
         on_delete=models.CASCADE,
         related_name="teams",
+        verbose_name="Ивент команды",
     )
 
-    name = models.CharField(max_length=50)
+    name = models.CharField(
+        "Название команды",
+        max_length=50,
+    )
 
     color = models.CharField(
+        "Цвет кманды",
         max_length=7,
-        help_text="HEX color #ff0000",
+        help_text="Цвет в HEX: #ff0000",
     )
 
-    max_players = models.IntegerField()
+    max_players = models.IntegerField("Максимум участников в команде")
 
     def __str__(self):
         return f"{self.event.name} - {self.name}"
@@ -113,20 +142,24 @@ class EventMember(models.Model):
         Event,
         on_delete=models.CASCADE,
         related_name="members",
+        verbose_name="Ивент участника",
     )
 
     profile = models.ForeignKey(
         Profile,
         on_delete=models.CASCADE,
-        related_name="membership"
+        related_name="membership",
+        verbose_name="Профиль участника",
     )
 
     minecraft_account = models.ForeignKey(
         MinecraftAccount,
         on_delete=models.CASCADE,
+        verbose_name="Аккаунт участника",
     )
 
     role = models.CharField(
+        "Роль участника",
         max_length=20,
         choices=Roles.choices,
         default=Roles.PLAYER,
@@ -138,9 +171,13 @@ class EventMember(models.Model):
         related_name="members",
         null=True,
         blank=True,
+        verbose_name="Команда участника",
     )
 
-    joined_at = models.DateTimeField(auto_now_add=True)
+    joined_at = models.DateTimeField(
+        "Время присоединения к ивенту",
+        auto_now_add=True,
+    )
 
     class Meta:
         constraints = [

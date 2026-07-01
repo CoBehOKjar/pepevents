@@ -5,11 +5,19 @@
 
     {{ event_form.as_p }}
 
-    {{ team_formset.management_form }}
+    <div id="teams">
+        {{ team_formset.management_form }}
 
-    {% for form in team_formset %}
-        {{ form.as_p }}
-    {% endfor %}
+        {% for form in team_formset %}
+            <div class="team-form">
+                {{ form.as_p }}
+            </div>
+        {% endfor %}
+    </div>
+
+<button type="button" id="add-team">
+    Добавить команду
+</button>
 
     <button>Создать</button>
 </form>

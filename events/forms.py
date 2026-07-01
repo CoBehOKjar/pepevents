@@ -19,6 +19,8 @@ class EventForm(forms.ModelForm):
             "start_datetime",
             "end_datetime",
             "max_players",
+            "allow_team_creation",
+            "status"
         ]
 
     def __init__(self, *args, profile=None, **kwargs):
@@ -42,6 +44,6 @@ TeamFormSet = inlineformset_factory(
     Event,
     Team,
     form=TeamForm,
-    extra=1,
+    extra=3,
     can_delete=True,
 )
