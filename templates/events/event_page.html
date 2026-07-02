@@ -9,3 +9,47 @@
     {% endif %}
 
 </div>
+
+{% if event.info %}
+    <p>Информация</p>
+    <p>{{ event.info }}</p>
+{% else %}
+    <p>Без информации</p>
+{% endif %}
+
+{% if event.max_players %}
+    <p>Участники: {{ event.members.count }}/{{ event.max_players }}</p>
+{% else %}
+    <p>Участники: {{ event.members.count }}/∞</p>
+{% endif %}
+
+{% if event.rules %}
+    <p>Правила</p>
+    <p>{{ event.rules }}</p>
+{% else %}
+    <p>Без правил</p>
+{% endif %}
+
+{% if event.start_datetime %}
+    <p>Начало: {{ event.start_datetime }}</p>
+{% else %}
+    <p>Без времени старта</p>
+{% endif %}
+
+{% if event.end_datetime %}
+    <p>Конец: {{ event.end_datetime }}</p>
+{% else %}
+    <p>Без времени окончания</p>
+{% endif %}
+
+{% if event.status %}
+    <p>{{ event.get_status_display }}</p>
+{% else %}
+    <p>Без статуса</p>
+{% endif %}
+
+{% for team in event.teams.all %}
+    <p>{{ team.name }}</p>
+{% empty %}
+    <p>Без команд</p>
+{% endfor %}
