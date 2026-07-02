@@ -43,13 +43,31 @@
 {% endif %}
 
 {% if event.status %}
-    <p>{{ event.get_status_display }}</p>
+    <p>Статус ивента: {{ event.get_status_display }}</p>
 {% else %}
     <p>Без статуса</p>
 {% endif %}
 
 {% for team in event.teams.all %}
-    <p>{{ team.name }}</p>
-{% empty %}
-    <p>Без команд</p>
+
+    <h2>{{ team.name }}</h2>
+
+    <ul>
+        {% for member in team.members.all %}
+            <li>{{ member.minecraft_account.nickname }}</li>
+        {% empty %}
+            <li>Нет участников</li>
+        {% endfor %}
+    </ul>
+
 {% endfor %}
+
+<h2>Без команды</h2>
+
+<ul>
+{% for member in event.members.all %}
+    {% if not member.team %}
+        <li>{{ member.minecraft_account.nickname }}</li>
+    {% endif %}
+{% endfor %}
+</ul>
