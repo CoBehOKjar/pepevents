@@ -23,6 +23,15 @@ class EventForm(forms.ModelForm):
             "status"
         ]
 
+        widgets = {
+            "start_datetime": forms.DateTimeInput(
+                attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
+            ),
+            "end_datetime": forms.DateTimeInput(
+                attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
+            ),
+        }
+
     def __init__(self, *args, profile=None, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -44,6 +53,6 @@ TeamFormSet = inlineformset_factory(
     Event,
     Team,
     form=TeamForm,
-    extra=3,
+    extra=1,
     can_delete=True,
 )

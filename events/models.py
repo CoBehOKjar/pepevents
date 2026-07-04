@@ -128,6 +128,8 @@ class Team(models.Model):
     color = models.CharField(
         "Цвет кманды",
         max_length=7,
+        null=True,
+        blank=True,
         help_text="Цвет в HEX: #ff0000",
     )
 

@@ -1,23 +1,84 @@
+<style>
+    /* Делаем весь текст ошибок красным и жирным */
+    .errorlist {
+        color: #ff4d4d;
+        font-weight: bold;
+        list-style-type: none; /* Убираем черные точки маркеров */
+        padding-left: 0;
+        margin: 5px 0 15px 0;
+    }
+
+    /* Слегка подсветим сами поля, если в них косяк */
+    .errorlist + p input,
+    .errorlist + input {
+        border: 2px solid #ff4d4d;
+        background-color: #fff2f2;
+    }
+</style>
+
 <h1>Создать ивент</h1>
 
 <form method="post">
     {% csrf_token %}
 
+    {{ event_form.non_field_errors }}
     {{ event_form.as_p }}
+
+    {{ team_formset.non_form_errors }}
 
     <div id="teams">
         {{ team_formset.management_form }}
 
         {% for form in team_formset %}
-            <div class="team-form">
+            <div class="team-form" style="border-left: 3px solid #ccc; padding-left: 10px; margin-bottom: 15px;">
+                {{ form.non_field_errors }}
                 {{ form.as_p }}
+
+                <button type="button" class="remove-team">Удалить команду</button>
             </div>
         {% endfor %}
     </div>
 
-<button type="button" id="add-team">
-    Добавить команду
-</button>
+    <template id="empty-form">
+        <div class="team-form" style="border-left: 3px solid #ccc; padding-left: 10px; margin-bottom: 15px;">
+            {{ team_formset.empty_form.as_p }}
+            <button type="button" class="remove-team">Удалить команду</button>
+        </div>
+    </template>
 
-    <button>Создать</button>
+    <button type="button" id="add-team">Добавить команду</button>
+    <button type="submit">Создать</button>
 </form>
+
+<script>
+    const teams = document.getElementById("teams");
+    const addButton = document.getElementById("add-team");
+
+    const totalForms = document.getElementById("id_teams-TOTAL_FORMS");
+    const template = document.getElementById("empty-form");
+
+    addButton.addEventListener("click", function () {
+        let formCount = parseInt(totalForms.value);
+
+        const newForm = template.innerHTML.replaceAll("__prefix__", formCount);
+
+        teams.insertAdjacentHTML("beforeend", newForm);
+
+        totalForms.value = formCount + 1;
+    });
+
+    teams.addEventListener("click", function (e) {
+        if (e.target.classList.contains("remove-team")) {
+            const teamForm = e.target.closest(".team-form");
+            const deleteCheckbox = teamForm.querySelector('input[type="checkbox"][name$="-DELETE"]');
+
+            if (deleteCheckbox) {
+                deleteCheckbox.checked = true;
+                teamForm.style.display = "none";
+            } else {
+                teamForm.style.display = "none";
+                teamForm.querySelectorAll('input').forEach(input => input.value = '');
+            }
+        }
+    });
+</script>

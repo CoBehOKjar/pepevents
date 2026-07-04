@@ -36,15 +36,15 @@ def event_page(request, slug):
 def new_event(request):
     if request.method == "POST":
         event_form = EventForm(request.POST, profile=request.user.profile)
+        team_formset = TeamFormSet(request.POST, instance=Event())
 
-        if event_form.is_valid():
-            minecraft_account = event_form.cleaned_data["minecraft_account"]
+        if event_form.is_valid() and team_formset.is_valid():
             event = event_form.save()
 
-            team_formset = TeamFormSet(request.POST, instance=event)
+            team_formset.instance = event
+            team_formset.save()
 
-            if team_formset.is_valid():
-                team_formset.save()
+            minecraft_account = event_form.cleaned_data["minecraft_account"]
 
             EventMember.objects.create(
                 event=event,
