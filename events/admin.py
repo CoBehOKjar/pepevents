@@ -12,6 +12,9 @@ class EventAdmin(admin.ModelAdmin):
         "start_datetime",
         "end_datetime",
         "max_players",
+        "max_teams",
+        "max_players_per_team",
+        "status",
     )
 
     search_fields = (

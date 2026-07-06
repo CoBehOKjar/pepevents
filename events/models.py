@@ -85,6 +85,24 @@ class Event(models.Model):
         help_text="Организаторы вне команд не учитываются"
     )
 
+    max_teams = models.IntegerField(
+        "Максимум команд",
+        null=True,
+        blank=True,
+    )
+
+    min_players_per_team = models.IntegerField(
+        "Минимум участников в команде",
+        null=True,
+        blank=True,
+    )
+
+    max_players_per_team = models.IntegerField(
+        "Максимум участников в команде",
+        null=True,
+        blank=True,
+    )
+
     status = models.CharField(
         "Текущий статус ивента",
         max_length=20,

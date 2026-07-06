@@ -48,19 +48,47 @@
     <p>Без статуса</p>
 {% endif %}
 
-{% for team in event.teams.all %}
+<form method="post">
+    {% csrf_token %}
 
-    <h2>{{ team.name }} {{ team.members.count }}/{{ team.max_players }}</h2>
+    <div style="margin-bottom: 20px; padding: 10px; background: #f5f5f5;">
+        <label for="mc-select"><strong>Выбери свой Minecraft аккаунт для участия:</strong></label>
+        <select name="minecraft_account" id="mc-select" required>
+            {% for account in request.user.profile.minecraft_accounts.all %}
+                <option value="{{ account.id }}">{{ account.nickname }}</option>
+            {% empty %}
+                <option value="">У тебя нет привязанных аккаунтов</option>
+            {% endfor %}
+        </select>
+    </div>
 
-    <ul>
-        {% for member in team.members.all %}
-            <li>{{ member.minecraft_account.nickname }}</li>
-        {% empty %}
-            <li>Нет участников</li>
-        {% endfor %}
-    </ul>
+    {% for team in event.teams.all %}
+        <h3>{{ team.name }} {{ team.members.count }}/{{ team.max_players }}</h3>
+        <ul>
+            {% for member in team.members.all %}
+                <li>{{ member.minecraft_account.nickname }}</li>
+            {% empty %}
+                <li>Нет участников</li>
+            {% endfor %}
+        </ul>
 
-{% endfor %}
+        {% if not team.max_players or team.members.count < team.max_players %}
+            <button type="submit" name="action_join" value="{{ team.id }}">Присоединиться</button>
+        {% endif %}
+    {% endfor %}
+
+    {% if not event.max_teams or event.teams.count < event.max_teams %}
+        <hr>
+        <button type="button" id="create-team">Создать свою команду</button>
+
+        <div id="create-team-form" style="display: none;">
+            <input type="text" name="new_team_name" placeholder="Название команды">
+            <input type="text" name="new_team_color" placeholder="Цвет HEX">
+            <input type="number" name="new_team_max_players" placeholder="Максимум игроков">
+            <button type="submit" name="action_create">Создать и присоедениться</button>
+        </div>
+    {% endif %}
+</form>
 
 <h2>Без команды</h2>
 
@@ -71,3 +99,13 @@
     {% endif %}
 {% endfor %}
 </ul>
+
+
+<script>
+    const newTeamForm = document.getElementById("create-team-form");
+    const newTeamButton = document.getElementById("create-team");
+
+    newTeamButton.addEventListener("click", function () {
+        newTeamForm.style.display = "block";
+    });
+</script>
