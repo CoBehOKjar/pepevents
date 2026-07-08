@@ -151,7 +151,11 @@ class Team(models.Model):
         help_text="Цвет в HEX: #ff0000",
     )
 
-    max_players = models.IntegerField("Максимум участников в команде")
+    max_players = models.IntegerField(
+        "Максимум участников в команде",
+        null=True,
+        blank=True,
+    )
 
     def __str__(self):
         return f"{self.event.name} - {self.name}"

@@ -31,18 +31,25 @@ def event_page(request, slug):
         account_id = request.POST.get("minecraft_account")
         minecraft_account = request.user.profile.minecraft_accounts.get(id=account_id)
 
+        member = event.members.filter(profile=request.user.profile).first()
+
         if "action_join" in request.POST:
             team_id = request.POST.get("action_join")
             team = event.teams.get(id=team_id)
 
             if team.max_players is None or team.members.count() < team.max_players:
-                EventMember.objects.create(
-                    event=event,
-                    profile=request.user.profile,
-                    role="PLAYER",
-                    minecraft_account=minecraft_account,
-                    team=team,
-                )
+                if member:
+                    member.minecraft_account = minecraft_account
+                    member.team = team
+                    member.save()
+                else:
+                    EventMember.objects.create(
+                        event=event,
+                        profile=request.user.profile,
+                        role="PLAYER",
+                        minecraft_account=minecraft_account,
+                        team=team,
+                    )
                 messages.success(request, f"Ты присоединился к команде {team.name}")
             else:
                 messages.error(request, "Команда уже заполнена!")
@@ -54,19 +61,28 @@ def event_page(request, slug):
             team_color = request.POST.get("new_team_color")
             team_max = request.POST.get("new_team_max_players")
 
-            EventMember.objects.create(
+            new_team = Team.objects.create(
                 event=event,
-                profile=request.user.profile,
-                role="PLAYER",
-                minecraft_account=minecraft_account,
-                team=Team.objects.create(
-                    event=event,
-                    name=team_name,
-                    color=team_color,
-                    max_players=team_max or None
-                ),
+                name=team_name,
+                color=team_color,
+                max_players=team_max or None
             )
 
+            if member:
+                member.minecraft_account = minecraft_account
+                member.team = new_team
+                member.save()
+            else:
+                EventMember.objects.create(
+                    event=event,
+                    profile=request.user.profile,
+                    role="PLAYER",
+                    minecraft_account=minecraft_account,
+                    team=new_team,
+                )
+
+        messages.success(request, f"Команда {new_team.name} создана, ты автоматически вступил в неё!")
+        return redirect("event_page", slug=event.slug)
 
     return render(
         request,
