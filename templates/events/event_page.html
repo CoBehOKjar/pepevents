@@ -1,5 +1,15 @@
 <h1>{{ event.name }}</h1>
 
+{% if messages %}
+    <div style="margin-bottom: 20px;">
+        {% for message in messages %}
+            <div style="padding: 10px; border: 1px solid {% if message.tags == 'error' %}red{% else %}green{% endif %};">
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
 <div style="border:1px solid #333; padding:10px; margin-bottom:10px;">
 
     {% if event.description %}
