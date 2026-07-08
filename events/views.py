@@ -81,8 +81,8 @@ def event_page(request, slug):
                     team=new_team,
                 )
 
-        messages.success(request, f"Команда {new_team.name} создана, ты автоматически вступил в неё!")
-        return redirect("event_page", slug=event.slug)
+            messages.success(request, f"Команда {new_team.name} создана, ты автоматически вступил в неё!")
+            return redirect("event_page", slug=event.slug)
 
     return render(
         request,
