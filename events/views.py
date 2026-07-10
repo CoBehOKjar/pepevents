@@ -32,6 +32,9 @@ def event_page(request, slug):
         current_member = event.members.filter(profile=request.user.profile).first()
 
     if request.method == "POST":
+        if not request.user.is_authenticated:
+            return redirect("login")
+
         account_id = request.POST.get("minecraft_account")
         minecraft_account = request.user.profile.minecraft_accounts.get(id=account_id)
 
