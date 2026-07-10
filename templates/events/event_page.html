@@ -33,6 +33,31 @@
     <p>Участники: {{ event.members.count }}/∞</p>
 {% endif %}
 
+{% if event.max_teams %}
+    <p>Максимум команд: {{ event.max_teams }}</p>
+{% else %}
+    <p>Максимум команд: ∞</p>
+{% endif %}
+
+{% if event.min_players_per_team or event.max_players_per_team %}
+    <p>
+        Размер команды:
+        {% if event.min_players_per_team %}
+            от {{ event.min_players_per_team }}
+        {% else %}
+            от 1
+        {% endif %}
+        до
+        {% if event.max_players_per_team %}
+            {{ event.max_players_per_team }}
+        {% else %}
+            ∞
+        {% endif %}
+    </p>
+{% else %}
+    <p>Размер команды: без ограничений</p>
+{% endif %}
+
 {% if event.rules %}
     <p>Правила</p>
     <p>{{ event.rules }}</p>
@@ -82,8 +107,12 @@
             {% endfor %}
         </ul>
 
-        {% if not team.max_players or team.members.count < team.max_players %}
-            <button type="submit" name="action_join" value="{{ team.id }}">Присоединиться</button>
+        {% if current_member.team == team %}
+            <button type="submit" name="action_leave" value="{{ team.id }}" style="background-color: #ff4d4d; color: white;">Выйти из команды</button>
+        {% else %}
+            {% if not team.max_players or team.members.count < team.max_players %}
+                <button type="submit" name="action_join" value="{{ team.id }}">Присоединиться</button>
+            {% endif %}
         {% endif %}
     {% endfor %}
 

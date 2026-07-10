@@ -27,21 +27,29 @@ def event_page(request, slug):
         slug=slug
     )
 
+    current_member = None
+    if request.user.is_authenticated:
+        current_member = event.members.filter(profile=request.user.profile).first()
+
     if request.method == "POST":
         account_id = request.POST.get("minecraft_account")
         minecraft_account = request.user.profile.minecraft_accounts.get(id=account_id)
 
-        member = event.members.filter(profile=request.user.profile).first()
+        if "action_leave" in request.POST:
+            if current_member:
+                current_member.delete()
+                messages.success(request, "Ты вышел из ивента.")
+            return redirect("event_page", slug=event.slug)
 
-        if "action_join" in request.POST:
+        elif "action_join" in request.POST:
             team_id = request.POST.get("action_join")
             team = event.teams.get(id=team_id)
 
             if team.max_players is None or team.members.count() < team.max_players:
-                if member:
-                    member.minecraft_account = minecraft_account
-                    member.team = team
-                    member.save()
+                if current_member:
+                    current_member.minecraft_account = minecraft_account
+                    current_member.team = team
+                    current_member.save()
                 else:
                     EventMember.objects.create(
                         event=event,
@@ -68,10 +76,10 @@ def event_page(request, slug):
                 max_players=team_max or None
             )
 
-            if member:
-                member.minecraft_account = minecraft_account
-                member.team = new_team
-                member.save()
+            if current_member:
+                current_member.minecraft_account = minecraft_account
+                current_member.team = new_team
+                current_member.save()
             else:
                 EventMember.objects.create(
                     event=event,
@@ -89,6 +97,7 @@ def event_page(request, slug):
         "events/event_page.html",
         {
             "event": event,
+            "current_member": current_member,
         }
     )
 
