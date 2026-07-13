@@ -1,4 +1,56 @@
+<style>
+.dropdown {
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.dropbtn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0 5px;
+    color: #333;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 250px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    padding: 15px;
+    z-index: 10;
+    right: auto;
+    left: 0;
+    max-width: calc(100vw - 20px);
+    box-sizing: border-box;
+    border-radius: 5px;
+}
+
+.dropdown-content form {
+    margin-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+}
+.dropdown-content form:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.show {
+    display: block;
+}
+</style>
+
 <h1>{{ event.name }}</h1>
+
+{% if can_edit %}
+    <a href="{% url 'edit_event' event.slug %}">Редактировать ивент</a>
+{% endif %}
 
 {% if messages %}
     <div style="margin-bottom: 20px;">
@@ -83,16 +135,13 @@
     <p>Без статуса</p>
 {% endif %}
 
-<form method="post">
+<form method="post" id="main-form">
     {% csrf_token %}
 
     {% if user.is_authenticated %}
         <div style="margin-bottom: 20px; padding: 10px; background: #f5f5f5;">
-            </div>
-
-        <div style="margin-bottom: 20px; padding: 10px; background: #f5f5f5;">
             <label for="mc-select"><strong>Выбери свой Minecraft аккаунт для участия:</strong></label>
-            <select name="minecraft_account" id="mc-select" required>
+            <select name="minecraft_account" id="mc-select">
                 {% for account in request.user.profile.minecraft_accounts.all %}
                     <option value="{{ account.id }}">{{ account.nickname }}</option>
                 {% empty %}
@@ -105,47 +154,146 @@
             <p>Чтобы принять участие в ивенте, <a href="/accounts/discord/login">войдите в аккаунт</a>.</p>
         </div>
     {% endif %}
+</form>
 
-    {% for team in event.teams.all %}
-        <h3>{{ team.name }} {{ team.members.count }}/{{ team.max_players }}</h3>
-        <ul>
-            {% for member in team.members.all %}
-                <li>{{ member.minecraft_account.nickname }}</li>
-            {% empty %}
-                <li>Нет участников</li>
-            {% endfor %}
-        </ul>
+{% for team in event.teams.all %}
+    <h3>{{ team.name }} {{ team.members.count }}/{{ team.max_players }}</h3>
+    <ul>
+        {% for member in team.members.all %}
+            <li style="margin-bottom: 5px;">
+                {{ member.minecraft_account.nickname }}
+                <span style="color: #666; font-size: 0.8em;">({{ member.get_role_display }})</span>
 
-        {% if user.is_authenticated %}
-            {% if current_member.team == team %}
-                <button type="submit" name="action_leave" value="{{ team.id }}" style="background-color: #ff4d4d; color: white;">Выйти</button>
-            {% else %}
-                {% if not team.max_players or team.members.count < team.max_players %}
-                    <button type="submit" name="action_join" value="{{ team.id }}">Присоединиться</button>
+                {% if can_manage %}
+                    <div class="dropdown">
+                        <button type="button" class="dropbtn" onclick="toggleMenu({{ member.id }})">⋮</button>
+
+                        <div id="menu-{{ member.id }}" class="dropdown-content">
+
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="member_id" value="{{ member.id }}">
+                                <label>Роль:</label>
+                                <select name="new_role" style="width: 100%; margin-bottom: 5px;" required>
+                                    {% for role_code, role_name in roles %}
+                                        <option value="{{ role_code }}" {% if member.role == role_code %}selected{% endif %}>
+                                            {{ role_name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" name="action_role">Сохранить роль</button>
+                            </form>
+
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="member_id" value="{{ member.id }}">
+                                <label>Команда:</label>
+                                <select name="new_team" style="width: 100%; margin-bottom: 5px;" required>
+                                    <option value="none">Без команды</option>
+                                    {% for t in event.teams.all %}
+                                        <option value="{{ t.id }}" {% if member.team_id == t.id %}selected{% endif %}>
+                                            {{ t.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" name="action_team">Перевести</button>
+                            </form>
+
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="member_id" value="{{ member.id }}">
+                                <button type="submit" name="action_kick" style="background-color: #ff4d4d; color: white; width: 100%;">Кикнуть с ивента</button>
+                            </form>
+
+                        </div>
+                    </div>
                 {% endif %}
+            </li>
+        {% empty %}
+            <li>Нет участников</li>
+        {% endfor %}
+    </ul>
+
+    {% if user.is_authenticated %}
+        {% if current_member.team == team %}
+            <button type="submit" form="main-form" name="action_leave" value="{{ team.id }}" style="background-color: #ff4d4d; color: white;">Выйти</button>
+        {% else %}
+            {% if not team.max_players or team.members.count < team.max_players %}
+                <button type="submit" form="main-form" name="action_join" value="{{ team.id }}">Присоединиться</button>
             {% endif %}
         {% endif %}
-    {% endfor %}
-
-    {% if not event.max_teams or event.teams.count < event.max_teams %}
-        <hr>
-        <button type="button" id="create-team">Создать свою команду</button>
-
-        <div id="create-team-form" style="display: none;">
-            <input type="text" name="new_team_name" placeholder="Название команды">
-            <input type="text" name="new_team_color" placeholder="Цвет HEX">
-            <input type="number" name="new_team_max_players" placeholder="Максимум игроков">
-            <button type="submit" name="action_create">Создать и присоедениться</button>
-        </div>
     {% endif %}
-</form>
+{% endfor %}
+
+{% if not event.max_teams or event.teams.count < event.max_teams %}
+    <hr>
+    <button type="button" id="create-team">Создать свою команду</button>
+
+    <div id="create-team-form" style="display: none; margin-top: 15px;">
+        <input type="text" name="new_team_name" form="main-form" placeholder="Название команды">
+        <label style="margin-left: 10px;">Цвет:</label>
+        <input type="color" name="new_team_color" form="main-form" value="#ff0000">
+        <input type="number" name="new_team_max_players" form="main-form" placeholder="Максимум игроков" min="1">
+
+        <button type="submit" form="main-form" name="action_create">Создать и присоединиться</button>
+    </div>
+{% endif %}
+
 
 <h2>Без команды</h2>
 
 <ul>
 {% for member in event.members.all %}
     {% if not member.team %}
-        <li>{{ member.minecraft_account.nickname }}</li>
+        <li style="margin-bottom: 5px;">
+                {{ member.minecraft_account.nickname }}
+                <span style="color: #666; font-size: 0.8em;">({{ member.get_role_display }})</span>
+
+                {% if can_manage %}
+                    <div class="dropdown">
+                        <button type="button" class="dropbtn" onclick="toggleMenu({{ member.id }})">⋮</button>
+
+                        <div id="menu-{{ member.id }}" class="dropdown-content">
+
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="member_id" value="{{ member.id }}">
+                                <label>Роль:</label>
+                                <select name="new_role" style="width: 100%; margin-bottom: 5px;" required>
+                                    {% for role_code, role_name in roles %}
+                                        <option value="{{ role_code }}" {% if member.role == role_code %}selected{% endif %}>
+                                            {{ role_name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" name="action_role">Сохранить роль</button>
+                            </form>
+
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="member_id" value="{{ member.id }}">
+                                <label>Команда:</label>
+                                <select name="new_team" style="width: 100%; margin-bottom: 5px;" required>
+                                    <option value="none">Без команды</option>
+                                    {% for t in event.teams.all %}
+                                        <option value="{{ t.id }}" {% if member.team_id == t.id %}selected{% endif %}>
+                                            {{ t.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" name="action_team">Перевести</button>
+                            </form>
+
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="member_id" value="{{ member.id }}">
+                                <button type="submit" name="action_kick" style="background-color: #ff4d4d; color: white; width: 100%;">Кикнуть с ивента</button>
+                            </form>
+
+                        </div>
+                    </div>
+                {% endif %}
+            </li>
     {% endif %}
 {% endfor %}
 </ul>
@@ -158,4 +306,20 @@
     newTeamButton.addEventListener("click", function () {
         newTeamForm.style.display = "block";
     });
+
+    function toggleMenu(memberId) {
+        const dropdown = document.getElementById("menu-" + memberId);
+        dropdown.classList.toggle("show");
+    }
+
+    window.onclick = function(event) {
+        if (!event.target.matches('.dropbtn') && !event.target.closest('.dropdown-content')) {
+            const dropdowns = document.getElementsByClassName("dropdown-content");
+            for (let i = 0; i < dropdowns.length; i++) {
+                if (dropdowns[i].classList.contains('show')) {
+                    dropdowns[i].classList.remove('show');
+                }
+            }
+        }
+    }
 </script>

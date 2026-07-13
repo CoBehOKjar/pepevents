@@ -12,9 +12,9 @@ class Statuses(models.TextChoices):
     FINISHED = "FINISHED", "Завершён"
 
 class Roles(models.TextChoices):
-    CREATOR = "CREATOR", "Создатель"
-    SUPPORT = "SUPPORT", "Ст. Организатор"
-    ORGANIZER = "ORGANIZER", "Организатор"
+    CREATOR = "CREATOR", "Создатель"        #Full access to event
+    SUPPORT = "SUPPORT", "Ст. Организатор"  #Full access without delete
+    ORGANIZER = "ORGANIZER", "Организатор"  #Access to manage members
     PLAYER = "PLAYER", "Участник"
 
 

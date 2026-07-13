@@ -16,7 +16,11 @@
     }
 </style>
 
-<h1>Создать ивент</h1>
+{% if event_form.instance.pk %}
+    <h1>Редактировать ивент — {{ event_form.instance.name }}</h1>
+{% else %}
+    <h1>Создать ивент</h1>
+{% endif %}
 
 <form method="post">
     {% csrf_token %}
@@ -47,7 +51,13 @@
     </template>
 
     <button type="button" id="add-team">Добавить команду</button>
-    <button type="submit">Создать</button>
+    <button type="submit">
+        {% if event_form.instance.pk %}
+            Сохранить
+        {% else %}
+            Создать
+        {% endif %}
+    </button>
 </form>
 
 <script>
