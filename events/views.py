@@ -102,29 +102,34 @@ def event_page(request, slug):
                 messages.error(request, "Необходимо выбрать Minecraft аккаунт для  участия!")
                 return redirect("event_page", slug=event.slug)
 
-            if team.max_players is None or team.members.count() < team.max_players:
-                if current_member:
-                    current_member.minecraft_account = minecraft_account
-                    current_member.team = team
-                    current_member.save()
-                else:
-                    EventMember.objects.create(
-                        event=event,
-                        profile=request.user.profile,
-                        role="PLAYER",
-                        minecraft_account=minecraft_account,
-                        team=team,
-                    )
-                messages.success(request, f"Ты присоединился к команде {team.name}")
-            else:
-                messages.error(request, "Команда уже заполнена!")
+            if not current_member and event.max_players is not None:
+                if event.members.count() >= event.max_players:
+                    messages.error(request, "Ивент уже полностью заполнен!")
+                    return redirect("event_page", slug=event.slug)
 
+            if team.max_players is not None or team.members.count() >= team.max_players:
+                messages.error(request, "Эта команда уже заполнена!")
+                return redirect("event_page", slug=event.slug)
+
+            if current_member:
+                current_member.minecraft_account = minecraft_account
+                current_member.team = team
+                current_member.save()
+            else:
+                EventMember.objects.create(
+                    event=event,
+                    profile=request.user.profile,
+                    role="PLAYER",
+                    minecraft_account=minecraft_account,
+                    team=team,
+                )
+            messages.success(request, f"Ты присоединился к команде {team.name}")
             return redirect("event_page", slug=event.slug)
 
         elif "action_create" in request.POST:
             team_name = request.POST.get("new_team_name")
             team_color = request.POST.get("new_team_color")
-            team_max = request.POST.get("new_team_max_players")
+            team_max_players = request.POST.get("new_team_max_players")
 
             if not account_id:
                 messages.error(request, "Необходимо выбрать Minecraft аккаунт!")
@@ -134,11 +139,42 @@ def event_page(request, slug):
                 messages.error(request, "Название команды не может быть пустым!")
                 return redirect("event_page", slug=event.slug)
 
+            if event.max_teams is not None and event.teams.count() >= event.max_teams:
+                messages.error(request, f"Достигнут лимит: максимум {event.max_teams} команд!")
+                return redirect("event_page", slug=event.slug)
+
+            if not current_member and event.max_players is not None:
+                if event.members.count() >= event.max_players:
+                    messages.error(request, "Ивент уже полностью заполнен!")
+                    return redirect("event_page", slug=event.slug)
+
+            team_max_val = None
+            if team_max_players and team_max_players.isdigit():
+                team_max_val = int(team_max_players)
+
+            if event.max_players is not None:
+                available_slots = event.max_players - event.members.count()
+                max_allowed_for_team = available_slots + (1 if current_member else 0)
+
+                if team_max_val is not None and team_max_val > max_allowed_for_team:
+                    messages.error(request,
+                                   f"Осталось мест на ивенте: {max_allowed_for_team}. Команда не может быть больше!")
+                    return redirect("event_page", slug=event.slug)
+
+                if team_max_val is None:
+                    team_max_val = max_allowed_for_team
+
+            if getattr(event, 'max_players_per_team', None) is not None:
+                if team_max_val is None or team_max_val > event.max_players_per_team:
+                    messages.error(request,
+                                   f"Максимум игроков в команде: {event.max_players_per_team}")
+                    return redirect("event_page", slug=event.slug)
+
             new_team = Team.objects.create(
                 event=event,
                 name=team_name,
                 color=team_color,
-                max_players=team_max or None
+                max_players=team_max_val
             )
 
             if current_member:
