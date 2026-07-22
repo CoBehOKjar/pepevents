@@ -218,6 +218,17 @@ class EventMember(models.Model):
                 "Команда должна принадлежать выбранному ивенту."
             )
 
+        if self.team.max_players:
+            qs = self.team.members.all()
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+            count = qs.count()
+
+            if count >= self.team.max_players:
+                raise ValidationError(
+                    "В команде уже максимальное число участников!"
+                )
+
         if self.minecraft_account.profile != self.profile:
             raise ValidationError(
                 "Minecraft-аккаунт должен принадлежать выбранному профилю."

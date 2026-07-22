@@ -1,5 +1,3 @@
-from os import name
-
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -56,9 +54,18 @@ class EventModelTests(TestCase):
 
         self.event3Team = Team.objects.create(
             event=self.event3,
+            name="Team1",
+            max_players=2,
+        )
+
+        self.event3Team2 = Team.objects.create(
+            event=self.event3,
             name="Team2",
             max_players=2,
         )
+
+        for i in range(2):
+            self._create_member(i, self.event3, self.event3Team)
 
     def test_join_to_team_from_other_event(self):
         with self.assertRaises(ValidationError):
@@ -82,12 +89,19 @@ class EventModelTests(TestCase):
         self.assertTrue(self.event1.can_manage(self.profile))
 
     def test_cannot_join_team_over_limit(self):
-        for i in range(2):
-            self._create_member(i, self.event3, self.event3Team)
-
         user3 = User.objects.create(username="player3")
         profile3 = Profile.objects.filter(user=user3).first()
         mc_acc3 = MinecraftAccount.objects.create(profile=profile3, nickname="nick3")
 
         with self.assertRaises(ValidationError):
             EventMember.objects.create(event=self.event3, profile=profile3, minecraft_account=mc_acc3, team=self.event3Team)
+
+    def test_moving_full_member_to_another_full_team_still_raises(self):
+        user4 = User.objects.create(username="player4")
+        profile4 = Profile.objects.filter(user=user4).first()
+        mc_acc4 = MinecraftAccount.objects.create(profile=profile4, nickname="nick4")
+        member = EventMember.objects.create(event=self.event3, profile=profile4, minecraft_account=mc_acc4, team=self.event3Team2)
+
+        with self.assertRaises(ValidationError):
+            member.team = self.event3Team
+            member.save()
