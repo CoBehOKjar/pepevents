@@ -124,6 +124,7 @@ class Event(models.Model):
         if self.slug == "":
             self.slug = slugify(self.name)
 
+
         super(Event, self).save(*args, **kwargs)
 
     def __str__(self):
