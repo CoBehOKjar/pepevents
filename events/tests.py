@@ -121,3 +121,18 @@ class EventMemberEventLimitTests(TestCase):
 
         with self.assertRaises(ValidationError):
             create_member(self.event)
+
+
+class EventMemberEventStatusTests(TestCase):
+    def setUp(self):
+        self.event = Event.objects.create(
+            name="Event",
+        )
+
+
+    def test_cannot_join_event_after_it_started(self):
+        self.event.status = "ONGOING"
+        self.event.save()
+
+        with self.assertRaises(ValidationError):
+            create_member(self.event)
