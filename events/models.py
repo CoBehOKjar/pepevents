@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.core.exceptions import ValidationError
 from slugify import slugify
 from users.models import Profile, MinecraftAccount
@@ -213,12 +214,23 @@ class EventMember(models.Model):
         ]
 
     def clean(self):
+        if self.event.max_players:
+            qs = self.event.members.all()
+            qs = qs.exclude(Q(pk=self.pk) | (Q(team__isnull=True) & ~Q(role="PLAYER")))
+
+            count = qs.count()
+
+            if count >= self.event.max_players:
+                raise ValidationError(
+                    "В ивенте уже максимальное число участников!"
+                )
+
         if self.team and self.team.event != self.event:
             raise ValidationError(
                 "Команда должна принадлежать выбранному ивенту."
             )
 
-        if self.team.max_players:
+        if self.team and self.team.max_players:
             qs = self.team.members.all()
             if self.pk:
                 qs = qs.exclude(pk=self.pk)
