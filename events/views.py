@@ -30,10 +30,12 @@ def event_page(request, slug):
     current_member = None
     can_edit = False
     can_manage = False
+    can_join = False
     if request.user.is_authenticated:
         current_member = event.members.filter(profile=request.user.profile).first()
         can_edit = event.can_edit(request.user.profile)
         can_manage = event.can_manage(request.user.profile)
+        can_join = event.can_join(request.user.profile)
 
     if request.method == "POST":
         if not request.user.is_authenticated:
@@ -95,6 +97,11 @@ def event_page(request, slug):
             return redirect("event_page", slug=event.slug)
 
         elif "action_join" in request.POST:
+            if not can_join:
+                messages.error(request, "Ты не можешь присоедениться к ивенту после его начала.")
+                return redirect("event_page", slug=event.slug)
+
+
             team_id = request.POST.get("action_join")
             team = event.teams.get(id=team_id)
 
@@ -107,7 +114,7 @@ def event_page(request, slug):
                     messages.error(request, "Ивент уже полностью заполнен!")
                     return redirect("event_page", slug=event.slug)
 
-            if team.max_players is not None or team.members.count() >= team.max_players:
+            if team.max_players is not None and team.members.count() >= team.max_players:
                 messages.error(request, "Эта команда уже заполнена!")
                 return redirect("event_page", slug=event.slug)
 
@@ -127,6 +134,11 @@ def event_page(request, slug):
             return redirect("event_page", slug=event.slug)
 
         elif "action_create" in request.POST:
+            if not can_join:
+                messages.error(request, "Ты не можешь присоедениться к ивенту после его начала.")
+                return redirect("event_page", slug=event.slug)
+
+
             team_name = request.POST.get("new_team_name")
             team_color = request.POST.get("new_team_color")
             team_max_players = request.POST.get("new_team_max_players")

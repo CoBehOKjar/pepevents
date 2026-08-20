@@ -121,6 +121,11 @@ class Event(models.Model):
     def can_manage(self, profile):
         return _has_role(self, profile, ["CREATOR", "SUPPORT", "ORGANIZER"])
 
+    def can_join(self, profile):
+        if self.can_manage(profile):
+            return True
+        return self.status not in ("ONGOING", "FINISHED")
+
     def save(self, *args, **kwargs):
         if self.slug == "":
             self.slug = slugify(self.name)
