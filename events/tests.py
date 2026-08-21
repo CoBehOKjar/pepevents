@@ -139,7 +139,6 @@ class EventPageJoinTests(TestCase):
 
         self.event = Event.objects.create(
             name="Event",
-            status="ONGOING",
         )
         self.team = Team.objects.create(
             event=self.event,
@@ -148,13 +147,31 @@ class EventPageJoinTests(TestCase):
 
 
     def test_cannot_join_when_event_ongoing_or_finished(self):
-        profile, mc_acc = create_player("user")
-        self.client.force_login(profile.user)
+        for status in ("ONGOING", "FINISHED"):
+            with self.subTest(status=status):
+                profile, mc_acc = create_player(f"user_{status}")
+                self.client.force_login(profile.user)
+                self.event.status = status
+                self.event.save()
 
-        url = reverse("event_page", args=[self.event.slug])
-        response = self.client.post(url,{
-            "action_join": self.team.id,
-            "minecraft_account": mc_acc.id,
-        })
-        self.assertRedirects(response, url)
-        self.assertFalse(EventMember.objects.filter(event=self.event, profile=profile).exists())
+                url = reverse("event_page", args=[self.event.slug])
+                response = self.client.post(url,{
+                    "action_join": self.team.id,
+                    "minecraft_account": mc_acc.id,
+                })
+                self.assertFalse(EventMember.objects.filter(event=self.event, profile=profile).exists())
+
+    def test_can_join_when_event_wip_recruitment_ready(self):
+        for status in ("WIP", "RECRUITMENT", "READY"):
+            with self.subTest(status=status):
+                profile, mc_acc = create_player(f"user_{status}")
+                self.client.force_login(profile.user)
+                self.event.status = status
+                self.event.save()
+
+                url = reverse("event_page", args=[self.event.slug])
+                response = self.client.post(url,{
+                    "action_join": self.team.id,
+                    "minecraft_account": mc_acc.id,
+                })
+                self.assertTrue(EventMember.objects.filter(event=self.event, profile=profile).exists())
