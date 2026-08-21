@@ -1,6 +1,7 @@
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.urls import reverse
 from events.models import Event, Team, EventMember
 from users.models import Profile, MinecraftAccount
 
@@ -21,7 +22,7 @@ def create_member(event, team=None, role="PLAYER", username=None):
     return EventMember.objects.create(event=event, profile=profile, minecraft_account=mc_acc, team=team, role=role)
 
 
-# Tests
+# Models Tests
 class EventTests(TestCase):
     def test_slug_is_generated_from_name(self):
         event = Event.objects.create(
@@ -130,9 +131,30 @@ class EventMemberEventStatusTests(TestCase):
         )
 
 
-    def test_cannot_join_event_after_it_started(self):
-        self.event.status = "ONGOING"
-        self.event.save()
 
-        with self.assertRaises(ValidationError):
-            create_member(self.event)
+# View tests
+class EventPageJoinTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+        self.event = Event.objects.create(
+            name="Event",
+            status="ONGOING",
+        )
+        self.team = Team.objects.create(
+            event=self.event,
+            name="Team"
+        )
+
+
+    def test_cannot_join_when_event_ongoing_or_finished(self):
+        profile, mc_acc = create_player("user")
+        self.client.force_login(profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url,{
+            "action_join": self.team.id,
+            "minecraft_account": mc_acc.id,
+        })
+        self.assertRedirects(response, url)
+        self.assertFalse(EventMember.objects.filter(event=self.event, profile=profile).exists())
