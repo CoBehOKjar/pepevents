@@ -202,3 +202,28 @@ class EventPageManageTests(TestCase):
         })
 
         self.assertTrue(EventMember.objects.filter(pk=self.creator.pk).exists())
+
+    def test_creator_can_kick_player(self):
+        self.client.force_login(self.creator.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "member_id": self.player.id,
+            "action_kick": "",
+        })
+
+        self.assertFalse(EventMember.objects.filter(pk=self.player.pk).exists())
+
+
+    def test_creator_cannot_kick_self(self):
+        self.client.force_login(self.creator.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "member_id": self.creator.id,
+            "action_kick": "",
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Нельзя кикнуть самого себя" in str(m) for m in messages_list))
+        self.assertTrue(EventMember.objects.filter(pk=self.creator.pk).exists())
