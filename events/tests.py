@@ -175,3 +175,30 @@ class EventPageJoinTests(TestCase):
                     "minecraft_account": mc_acc.id,
                 })
                 self.assertTrue(EventMember.objects.filter(event=self.event, profile=profile).exists())
+
+
+class EventPageManageTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+        self.event = Event.objects.create(
+            name="Event",
+        )
+        self.team = Team.objects.create(
+            event=self.event,
+            name="Team"
+        )
+
+        self.creator = create_member(self.event, self.team, "CREATOR", "creator")
+        self.player = create_member(self.event)
+
+    def test_regular_player_cannot_kick_member(self):
+        self.client.force_login(self.player.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "member_id": self.creator.id,
+            "action_kick": "",
+        })
+
+        self.assertTrue(EventMember.objects.filter(pk=self.creator.pk).exists())
