@@ -1,3 +1,5 @@
+from urllib import response
+
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -190,7 +192,9 @@ class EventPageManageTests(TestCase):
         )
 
         self.creator = create_member(self.event, self.team, "CREATOR", "creator")
+        self.organizer = create_member(self.event, self.team, "ORGANIZER", "organizer")
         self.player = create_member(self.event)
+
 
     def test_regular_player_cannot_kick_member(self):
         self.client.force_login(self.player.profile.user)
@@ -202,6 +206,7 @@ class EventPageManageTests(TestCase):
         })
 
         self.assertTrue(EventMember.objects.filter(pk=self.creator.pk).exists())
+
 
     def test_creator_can_kick_player(self):
         self.client.force_login(self.creator.profile.user)
@@ -227,3 +232,51 @@ class EventPageManageTests(TestCase):
         messages_list = list(response.wsgi_request._messages)
         self.assertTrue(any("Нельзя кикнуть самого себя" in str(m) for m in messages_list))
         self.assertTrue(EventMember.objects.filter(pk=self.creator.pk).exists())
+
+
+    def test_organizer_can_manage_player(self):
+        self.client.force_login(self.organizer.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "member_id": self.player.id,
+            "action_role": "",
+            "new_role": "ORGANIZER"
+        })
+
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.role, "ORGANIZER")
+
+
+    def test_cannot_manage_creator(self):
+        self.client.force_login(self.organizer.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "member_id": self.creator.id,
+            "action_role": "",
+            "new_role": "ORGANIZER"
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Только создатель может редактировать создателя" in str(m) for m in messages_list))
+
+        self.creator.refresh_from_db()
+        self.assertEqual(self.creator.role, "CREATOR")
+
+
+    def test_cannot_change_role_to_invalid(self):
+        self.client.force_login(self.organizer.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "member_id": self.player.id,
+            "action_role": "",
+            "new_role": "SHITPOST"
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Такой роли не существует" in str(m) for m in messages_list))
+
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.role, "PLAYER")

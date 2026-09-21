@@ -65,6 +65,8 @@ def event_page(request, slug):
                         target_member.role = new_role
                         target_member.save()
                         messages.success(request, f"Роль {target_member.minecraft_account.nickname} изменена.")
+                    else:
+                        messages.error(request, "Такой роли не существует!")
 
                 elif "action_team" in request.POST:
                     new_team_id = request.POST.get("new_team")
