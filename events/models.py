@@ -112,13 +112,13 @@ class Event(models.Model):
     )
 
     #Permissions check
-    def can_delete(self, profile):
+    def can_delete(self, profile): #is can delete event
         return _has_role(self, profile, ["CREATOR"])
 
-    def can_edit(self, profile):
+    def can_edit(self, profile): #is can edit event and teams
         return _has_role(self, profile, ["CREATOR", "SUPPORT"])
 
-    def can_manage(self, profile):
+    def can_manage(self, profile): #is can manage event, teams and players
         return _has_role(self, profile, ["CREATOR", "SUPPORT", "ORGANIZER"])
 
     def can_join(self, profile):

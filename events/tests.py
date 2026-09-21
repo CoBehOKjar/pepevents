@@ -188,12 +188,18 @@ class EventPageManageTests(TestCase):
         )
         self.team = Team.objects.create(
             event=self.event,
-            name="Team"
+            name="Team",
+            max_players=2,
+        )
+        self.team2 = Team.objects.create(
+            event=self.event,
+            name="Team2",
+            max_players=2,
         )
 
         self.creator = create_member(self.event, self.team, "CREATOR", "creator")
-        self.organizer = create_member(self.event, self.team, "ORGANIZER", "organizer")
-        self.player = create_member(self.event)
+        self.organizer = create_member(self.event, self.team2, "ORGANIZER", "organizer")
+        self.player = create_member(self.event, self.team2)
 
 
     def test_regular_player_cannot_kick_member(self):
@@ -234,7 +240,7 @@ class EventPageManageTests(TestCase):
         self.assertTrue(EventMember.objects.filter(pk=self.creator.pk).exists())
 
 
-    def test_organizer_can_manage_player(self):
+    def test_organizer_can_manage_player_role(self):
         self.client.force_login(self.organizer.profile.user)
 
         url = reverse("event_page", args=[self.event.slug])
@@ -248,7 +254,7 @@ class EventPageManageTests(TestCase):
         self.assertEqual(self.player.role, "ORGANIZER")
 
 
-    def test_cannot_manage_creator(self):
+    def test_cannot_manage_member_with_creator_role(self):
         self.client.force_login(self.organizer.profile.user)
 
         url = reverse("event_page", args=[self.event.slug])
@@ -265,7 +271,7 @@ class EventPageManageTests(TestCase):
         self.assertEqual(self.creator.role, "CREATOR")
 
 
-    def test_cannot_change_role_to_invalid(self):
+    def test_cannot_change_member_role_to_invalid(self):
         self.client.force_login(self.organizer.profile.user)
 
         url = reverse("event_page", args=[self.event.slug])
@@ -280,3 +286,56 @@ class EventPageManageTests(TestCase):
 
         self.player.refresh_from_db()
         self.assertEqual(self.player.role, "PLAYER")
+
+
+    def test_organizer_can_move_player_to_other_team(self):
+        self.client.force_login(self.organizer.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "member_id": self.player.id,
+            "action_team": "",
+            "new_team": self.team.id
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any(f"Участник переведён в {self.team.name}" in str(m) for m in messages_list))
+
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.team, self.team)
+
+
+    def test_organizer_can_remove_player_from_team(self):
+        self.client.force_login(self.organizer.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "member_id": self.player.id,
+            "action_team": "",
+            "new_team": "none"
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any(f"{self.player.minecraft_account.nickname} исключён из команды" in str(m) for m in messages_list))
+
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.team, None)
+
+
+    def test_cannot_move_member_to_full_team(self):
+        create_member(self.event, self.team) # fill team 1 to limits
+
+        self.client.force_login(self.organizer.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "member_id": self.player.id,
+            "action_team": "",
+            "new_team": self.team.id
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("В этой команде нет мест" in str(m) for m in messages_list))
+
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.team, self.team2)
