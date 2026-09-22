@@ -47,11 +47,9 @@ def event_page(request, slug):
             minecraft_account = request.user.profile.minecraft_accounts.filter(id=account_id).first()
 
         if can_manage:
-            print("can_manage")
             member_id = request.POST.get("member_id")
 
             if member_id:
-                print("has member_id")
                 target_member = get_object_or_404(EventMember, id=member_id, event=event)
 
                 #Creator edit protect

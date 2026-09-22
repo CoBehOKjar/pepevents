@@ -24,7 +24,7 @@ def create_member(event, team=None, role="PLAYER", username=None):
     return EventMember.objects.create(event=event, profile=profile, minecraft_account=mc_acc, team=team, role=role)
 
 
-# Models Tests
+### Models Tests
 class EventTests(TestCase):
     def test_slug_is_generated_from_name(self):
         event = Event.objects.create(
@@ -134,7 +134,7 @@ class EventMemberEventStatusTests(TestCase):
 
 
 
-# View tests
+### View tests
 class EventPageJoinTests(TestCase):
     def setUp(self):
         self.client = Client()
@@ -202,6 +202,7 @@ class EventPageManageTests(TestCase):
         self.player = create_member(self.event, self.team2)
 
 
+# Kick tests
     def test_regular_player_cannot_kick_member(self):
         self.client.force_login(self.player.profile.user)
 
@@ -240,6 +241,7 @@ class EventPageManageTests(TestCase):
         self.assertTrue(EventMember.objects.filter(pk=self.creator.pk).exists())
 
 
+# Role tests
     def test_organizer_can_manage_player_role(self):
         self.client.force_login(self.organizer.profile.user)
 
@@ -288,6 +290,7 @@ class EventPageManageTests(TestCase):
         self.assertEqual(self.player.role, "PLAYER")
 
 
+# Move tests
     def test_organizer_can_move_player_to_other_team(self):
         self.client.force_login(self.organizer.profile.user)
 
@@ -341,6 +344,7 @@ class EventPageManageTests(TestCase):
         self.assertEqual(self.player.team, self.team2)
 
 
+# Leave tests
     def test_member_can_leave_event(self):
         self.client.force_login(self.player.profile.user)
 
@@ -358,6 +362,7 @@ class EventPageManageTests(TestCase):
 
     def test_non_member_leave_does_not_error(self):
         profile, mc_acc = create_player("Notamember") # create user not in event
+
         self.client.force_login(profile.user)
 
         url = reverse("event_page", args=[self.event.slug])
@@ -383,3 +388,68 @@ class EventPageManageTests(TestCase):
         self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
 
         self.assertTrue(EventMember.objects.filter(pk=self.creator.pk).exists())
+
+
+# Team create tests
+class EventPageTeamCreateTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+        self.event = Event.objects.create(
+            name="Event",
+            max_teams=2
+        )
+
+        self.player = create_member(self.event)
+
+
+    def test_cannot_create_team_without_minecraft_account(self):
+        self.client.force_login(self.player.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "action_create": "",
+            "new_team_name": "team"
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Необходимо выбрать Minecraft аккаунт" in str(m) for m in messages_list))
+        self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
+
+        self.assertFalse(Team.objects.filter(event=self.event).exists())
+
+    def test_cannot_create_team_with_empty_name(self):
+        self.client.force_login(self.player.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "action_create": "",
+            "minecraft_account": self.player.minecraft_account.id
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Название команды не может быть пустым" in str(m) for m in messages_list))
+        self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
+
+        self.assertFalse(Team.objects.filter(event=self.event).exists())
+
+
+    def test_cannot_create_team_when_max_teams_reached(self):
+        # fill event teams limit
+        Team.objects.create(event=self.event, name="team1")
+        Team.objects.create(event=self.event, name="team2")
+
+        self.client.force_login(self.player.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "action_create": "",
+            "minecraft_account": self.player.minecraft_account.id,
+            "new_team_name": "team3"
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any(f"Достигнут лимит: максимум {self.event.max_teams} команд!" in str(m) for m in messages_list))
+        self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
+
+        self.assertFalse(Team.objects.filter(event=self.event, name="team3").exists())
