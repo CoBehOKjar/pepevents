@@ -92,10 +92,12 @@ def event_page(request, slug):
 
                 return redirect("event_page", slug=event.slug)
 
-        if "action_leave" in request.POST:
+        if "action_leave" in request.POST: # later add creator leave protect
             if current_member:
                 current_member.delete()
                 messages.success(request, "Ты вышел из ивента.")
+            else:
+                messages.error(request, "Ты не был участником ивента!")
             return redirect("event_page", slug=event.slug)
 
         elif "action_join" in request.POST:

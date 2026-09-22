@@ -339,3 +339,47 @@ class EventPageManageTests(TestCase):
 
         self.player.refresh_from_db()
         self.assertEqual(self.player.team, self.team2)
+
+
+    def test_member_can_leave_event(self):
+        self.client.force_login(self.player.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "action_leave": "",
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Ты вышел из ивента" in str(m) for m in messages_list))
+        self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
+
+        self.assertFalse(EventMember.objects.filter(pk=self.player.pk).exists())
+
+
+    def test_non_member_leave_does_not_error(self):
+        profile, mc_acc = create_player("Notamember") # create user not in event
+        self.client.force_login(profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "action_leave": ""
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Ты не был участником ивента" in str(m) for m in messages_list))
+        self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
+
+
+    def test_creator_cannot_leave_event(self):
+        self.client.force_login(self.creator.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "action_leave": "",
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("ВСТАВИТЬ_ТЕКСТ_ОШИБКИ" in str(m) for m in messages_list))
+        self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
+
+        self.assertTrue(EventMember.objects.filter(pk=self.creator.pk).exists())
