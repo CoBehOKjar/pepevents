@@ -167,8 +167,10 @@ def event_page(request, slug):
                     return redirect("event_page", slug=event.slug)
 
             team_max_val = None
+            int_team_max_players = None
             if team_max_players and team_max_players.isdigit():
                 team_max_val = int(team_max_players)
+                int_team_max_players = int(team_max_players)
 
             if event.max_players is not None:
                 available_slots = event.max_players - event.members.count()
@@ -182,8 +184,8 @@ def event_page(request, slug):
                 if team_max_val is None:
                     team_max_val = max_allowed_for_team
 
-            if getattr(event, 'max_players_per_team', None) is not None:
-                if team_max_val is None or team_max_val > event.max_players_per_team:
+            if getattr(event, "max_players_per_team", None) is not None:
+                if int_team_max_players is None or int_team_max_players > event.max_players_per_team:
                     messages.error(request,
                                    f"Максимум игроков в команде: {event.max_players_per_team}")
                     return redirect("event_page", slug=event.slug)

@@ -398,7 +398,8 @@ class EventPageTeamCreateTests(TestCase):
         self.event = Event.objects.create(
             name="Event",
             max_players=4,
-            max_teams=2
+            max_teams=2,
+            max_players_per_team=4
         )
 
         self.player = create_member(self.event)
@@ -472,6 +473,7 @@ class EventPageTeamCreateTests(TestCase):
         self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
 
         self.assertTrue(Team.objects.filter(event=self.event).exists())
+        self.assertTrue(self.player in Team.objects.filter(event=self.event).first().members.all())
 
 
     def test_new_member_creating_team_cannot_exceed_available_slots(self):
@@ -489,6 +491,27 @@ class EventPageTeamCreateTests(TestCase):
 
         messages_list = list(response.wsgi_request._messages)
         self.assertTrue(any("Осталось мест на ивенте: 3. Команда не может быть больше" in str(m) for m in messages_list))
+        self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
+
+        self.assertFalse(Team.objects.filter(event=self.event).exists())
+
+
+    def test_cannot_create_team_over_max_players_per_team(self):
+        self.event.max_players = None # protect fail on max_players limit check
+        self.event.save()
+
+        self.client.force_login(self.player.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "action_create": "",
+            "minecraft_account": self.player.minecraft_account.id,
+            "new_team_name": "team",
+            "new_team_max_players": 5
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Максимум игроков в команде: 4" in str(m) for m in messages_list))
         self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
 
         self.assertFalse(Team.objects.filter(event=self.event).exists())
