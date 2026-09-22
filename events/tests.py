@@ -1,4 +1,5 @@
 from urllib import response
+from xml.etree.ElementTree import tostring
 
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
@@ -515,3 +516,29 @@ class EventPageTeamCreateTests(TestCase):
         self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
 
         self.assertFalse(Team.objects.filter(event=self.event).exists())
+
+
+# Forms tests
+class NewEventFormTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.profile, self.mc_acc = create_player("creator")
+
+    def test_creating_event_makes_creator(self):
+        self.client.force_login(self.profile.user)
+        url = reverse("new")
+        response = self.client.post(url, {
+            "name": "Event",
+            "status": "WIP",
+            "minecraft_account": self.mc_acc.id,
+            "teams-TOTAL_FORMS": "0",
+            "teams-INITIAL_FORMS": "0",
+            "teams-MIN_NUM_FORMS": "0",
+            "teams-MAX_NUM_FORMS": "1000",
+        })
+
+        event = Event.objects.get(name="Event")
+        self.assertRedirects(response, reverse("event_page", args=[event.slug]))
+
+        creator = EventMember.objects.get(profile=self.profile, event=event)
+        self.assertEqual(creator.role, "CREATOR")
