@@ -397,6 +397,7 @@ class EventPageTeamCreateTests(TestCase):
 
         self.event = Event.objects.create(
             name="Event",
+            max_players=4,
             max_teams=2
         )
 
@@ -449,7 +450,45 @@ class EventPageTeamCreateTests(TestCase):
         })
 
         messages_list = list(response.wsgi_request._messages)
-        self.assertTrue(any(f"Достигнут лимит: максимум {self.event.max_teams} команд!" in str(m) for m in messages_list))
+        self.assertTrue(any(f"Достигнут лимит: максимум {self.event.max_teams} команд" in str(m) for m in messages_list))
         self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
 
         self.assertFalse(Team.objects.filter(event=self.event, name="team3").exists())
+
+
+    def test_current_member_creating_team_for_all_slots(self):
+        self.client.force_login(self.player.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "action_create": "",
+            "minecraft_account": self.player.minecraft_account.id,
+            "new_team_name": "team",
+            "new_team_max_players": 4
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Команда team создана, ты автоматически вступил в неё" in str(m) for m in messages_list))
+        self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
+
+        self.assertTrue(Team.objects.filter(event=self.event).exists())
+
+
+    def test_new_member_creating_team_cannot_exceed_available_slots(self):
+        profile, mc_acc = create_player("Notamember") # create user not in event
+
+        self.client.force_login(profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "action_create": "",
+            "minecraft_account": mc_acc.id,
+            "new_team_name": "team",
+            "new_team_max_players": 4
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Осталось мест на ивенте: 3. Команда не может быть больше" in str(m) for m in messages_list))
+        self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
+
+        self.assertFalse(Team.objects.filter(event=self.event).exists())
