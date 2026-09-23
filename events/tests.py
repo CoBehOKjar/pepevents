@@ -155,7 +155,7 @@ class EventPageJoinTests(TestCase):
                 self.event.save()
 
                 url = reverse("event_page", args=[self.event.slug])
-                response = self.client.post(url,{
+                response = self.client.post(url, {
                     "action_join": self.team.id,
                     "minecraft_account": mc_acc.id,
                 })
@@ -170,37 +170,25 @@ class EventPageJoinTests(TestCase):
                 self.event.save()
 
                 url = reverse("event_page", args=[self.event.slug])
-                response = self.client.post(url,{
+                response = self.client.post(url, {
                     "action_join": self.team.id,
                     "minecraft_account": mc_acc.id,
                 })
                 self.assertTrue(EventMember.objects.filter(event=self.event, profile=profile).exists())
 
 
-class EventPageManageTests(TestCase):
+class EventPageKickTests(TestCase):
     def setUp(self):
         self.client = Client()
 
         self.event = Event.objects.create(
             name="Event",
         )
-        self.team = Team.objects.create(
-            event=self.event,
-            name="Team",
-            max_players=2,
-        )
-        self.team2 = Team.objects.create(
-            event=self.event,
-            name="Team2",
-            max_players=2,
-        )
 
-        self.creator = create_member(self.event, self.team, "CREATOR", "creator")
-        self.organizer = create_member(self.event, self.team2, "ORGANIZER", "organizer")
-        self.player = create_member(self.event, self.team2)
+        self.creator = create_member(self.event, role="CREATOR")
+        self.player = create_member(self.event)
 
 
-# Kick tests
     def test_regular_player_cannot_kick_member(self):
         self.client.force_login(self.player.profile.user)
 
@@ -225,7 +213,7 @@ class EventPageManageTests(TestCase):
         self.assertFalse(EventMember.objects.filter(pk=self.player.pk).exists())
 
 
-    def test_creator_cannot_kick_self(self):
+    def test_cannot_kick_self(self):
         self.client.force_login(self.creator.profile.user)
 
         url = reverse("event_page", args=[self.event.slug])
@@ -239,7 +227,19 @@ class EventPageManageTests(TestCase):
         self.assertTrue(EventMember.objects.filter(pk=self.creator.pk).exists())
 
 
-# Role tests
+class EventPageRoleTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+        self.event = Event.objects.create(
+            name="Event",
+        )
+
+        self.creator = create_member(self.event, role="CREATOR")
+        self.organizer = create_member(self.event, role="ORGANIZER")
+        self.player = create_member(self.event)
+
+
     def test_organizer_can_manage_player_role(self):
         self.client.force_login(self.organizer.profile.user)
 
@@ -288,7 +288,65 @@ class EventPageManageTests(TestCase):
         self.assertEqual(self.player.role, "PLAYER")
 
 
-# Move tests
+    def test_last_creator_cannot_change_self_role(self):
+        self.client.force_login(self.creator.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "member_id": self.creator.id,
+            "action_role": "",
+            "new_role": "PLAYER"
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Нельзя менять роль единственного создателя" in str(m) for m in messages_list))
+
+        self.creator.refresh_from_db()
+        self.assertEqual(self.creator.role, "CREATOR")
+
+
+    def test_not_last_creator_can_change_self_role(self):
+        create_member(self.event, role="CREATOR")  # add another creator to firs can change role
+
+        self.client.force_login(self.creator.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "member_id": self.creator.id,
+            "action_role": "",
+            "new_role": "PLAYER"
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any(f"Роль {self.creator.minecraft_account.nickname} изменена" in str(m) for m in messages_list))
+
+        self.creator.refresh_from_db()
+        self.assertEqual(self.creator.role, "PLAYER")
+
+
+class EventPageMoveTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+        self.event = Event.objects.create(
+            name="Event",
+        )
+        self.team = Team.objects.create(
+            event=self.event,
+            name="Team",
+            max_players=2,
+        )
+        self.team2 = Team.objects.create(
+            event=self.event,
+            name="Team2",
+            max_players=2,
+        )
+
+        self.creator = create_member(self.event, self.team, "CREATOR")
+        self.organizer = create_member(self.event, self.team2, "ORGANIZER")
+        self.player = create_member(self.event, self.team2)
+
+
     def test_organizer_can_move_player_to_other_team(self):
         self.client.force_login(self.organizer.profile.user)
 
@@ -324,7 +382,7 @@ class EventPageManageTests(TestCase):
 
 
     def test_cannot_move_member_to_full_team(self):
-        create_member(self.event, self.team) # fill team 1 to limits
+        create_member(self.event, self.team)  # fill team 1 to limits
 
         self.client.force_login(self.organizer.profile.user)
 
@@ -342,7 +400,18 @@ class EventPageManageTests(TestCase):
         self.assertEqual(self.player.team, self.team2)
 
 
-# Leave tests
+class EventPageLeaveTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+        self.event = Event.objects.create(
+            name="Event",
+        )
+
+        self.creator = create_member(self.event, role="CREATOR")
+        self.player = create_member(self.event)
+
+
     def test_member_can_leave_event(self):
         self.client.force_login(self.player.profile.user)
 
@@ -359,7 +428,7 @@ class EventPageManageTests(TestCase):
 
 
     def test_non_member_leave_does_not_error(self):
-        profile, mc_acc = create_player("Notamember") # create user not in event
+        profile, mc_acc = create_player("Notamember")  # create user not in event
 
         self.client.force_login(profile.user)
 
@@ -372,8 +441,7 @@ class EventPageManageTests(TestCase):
         self.assertTrue(any("Ты не был участником ивента" in str(m) for m in messages_list))
         self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
 
-
-    def test_creator_cannot_leave_event(self):
+    def test_last_creator_cannot_leave_event(self):
         self.client.force_login(self.creator.profile.user)
 
         url = reverse("event_page", args=[self.event.slug])
@@ -386,6 +454,23 @@ class EventPageManageTests(TestCase):
         self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
 
         self.assertTrue(EventMember.objects.filter(pk=self.creator.pk).exists())
+
+
+    def test_not_last_creator_can_leave_event(self):
+        create_member(self.event, role="CREATOR") # add another creator to firs can leave
+
+        self.client.force_login(self.creator.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "action_leave": "",
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Ты вышел из ивента" in str(m) for m in messages_list))
+        self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
+
+        self.assertFalse(EventMember.objects.filter(pk=self.creator.pk).exists())
 
 
 # Team create tests
