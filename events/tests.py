@@ -382,7 +382,7 @@ class EventPageManageTests(TestCase):
         })
 
         messages_list = list(response.wsgi_request._messages)
-        self.assertTrue(any("Создатель не может покинуть ивент" in str(m) for m in messages_list))
+        self.assertTrue(any("Единственный создатель не может покинуть ивент" in str(m) for m in messages_list))
         self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
 
         self.assertTrue(EventMember.objects.filter(pk=self.creator.pk).exists())

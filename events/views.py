@@ -58,6 +58,10 @@ def event_page(request, slug):
                 if "action_role" in request.POST:
                     new_role = request.POST.get("new_role")
                     if new_role in dict(Roles.choices):
+                        if target_member.role == "CREATOR" and new_role != "CREATOR" and event.is_last_creator(target_member.profile):
+                            messages.error(request, "Нельзя менять роль единственного создателя!")
+                            return redirect("event_page", slug=event.slug)
+
                         target_member.role = new_role
                         target_member.save()
                         messages.success(request, f"Роль {target_member.minecraft_account.nickname} изменена.")
@@ -90,11 +94,12 @@ def event_page(request, slug):
 
         if "action_leave" in request.POST:
             if current_member:
-                if current_member.role != "CREATOR":
+                if current_member.role == "CREATOR" and event.is_last_creator(current_member.profile):
+                    messages.error(request, "Единственный создатель не может покинуть ивент!")
+                else:
                     current_member.delete()
                     messages.success(request, "Ты вышел из ивента.")
-                else:
-                    messages.error(request, "Создатель не может покинуть ивент!")
+
             else:
                 messages.error(request, "Ты не был участником ивента!")
 

@@ -126,6 +126,11 @@ class Event(models.Model):
             return True
         return self.status not in ("ONGOING", "FINISHED")
 
+    def is_last_creator(self, profile):
+        if not _has_role(self, profile, ["CREATOR"]):
+            return False
+        return EventMember.objects.filter(event=self, role="CREATOR").count() < 2
+
     def save(self, *args, **kwargs):
         if self.slug == "":
             self.slug = slugify(self.name)
