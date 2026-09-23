@@ -539,3 +539,76 @@ class NewEventFormTests(TestCase):
 
         creator = EventMember.objects.get(profile=self.profile, event=event)
         self.assertEqual(creator.role, "CREATOR")
+
+
+class EditEventFormTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+        self.event = Event.objects.create(
+            name="Event"
+        )
+
+        self.player = create_member(self.event)
+        self.support = create_member(self.event, role="SUPPORT")
+
+
+    def test_cannot_open_edit_event_page_without_access(self):
+        self.client.force_login(self.player.profile.user)
+
+        url = reverse("edit_event", args=[self.event.slug])
+        response = self.client.get(url)
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("У тебя нет прав на редактирование этого ивента" in str(m) for m in messages_list))
+        self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
+
+
+    def test_cannot_edit_event_without_access(self):
+        self.client.force_login(self.player.profile.user)
+
+        url = reverse("edit_event", args=[self.event.slug])
+        response = self.client.post(url, {
+            "name": "notEvent",
+            "status": "ONGOING",
+            "minecraft_account": self.player.minecraft_account.id,
+            "teams-TOTAL_FORMS": "0",
+            "teams-INITIAL_FORMS": "0",
+            "teams-MIN_NUM_FORMS": "0",
+            "teams-MAX_NUM_FORMS": "1000",
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("У тебя нет прав на редактирование этого ивента" in str(m) for m in messages_list))
+        self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
+
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.name, "Event")
+        self.assertEqual(self.event.slug, "event")
+        self.assertEqual(self.event.status, "WIP")
+
+
+    def test_can_edit_event_with_access(self):
+        self.client.force_login(self.support.profile.user)
+
+        url = reverse("edit_event", args=[self.event.slug])
+        response = self.client.post(url, {
+            "name": "notEvent",
+            "slug": self.event.slug,
+            "status": "ONGOING",
+            "minecraft_account": self.support.minecraft_account.id,
+            "teams-TOTAL_FORMS": "0",
+            "teams-INITIAL_FORMS": "0",
+            "teams-MIN_NUM_FORMS": "0",
+            "teams-MAX_NUM_FORMS": "1000",
+        })
+
+        self.event.refresh_from_db()
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Ивент успешно обновлен" in str(m) for m in messages_list))
+        self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
+
+        self.assertEqual(self.event.name, "notEvent")
+        self.assertEqual(self.event.slug, "event")
+        self.assertEqual(self.event.status, "ONGOING")
