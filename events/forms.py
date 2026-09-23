@@ -1,3 +1,5 @@
+from tokenize import String
+
 from django import forms
 from django.forms.models import inlineformset_factory
 
@@ -49,6 +51,27 @@ class EventJoinForm(forms.Form):
 
             if team_max_players and team_max_players > self.event.max_players_per_team:
                 self.add_error("team_max_players", "Превышен лимит игроков на ивенте.")
+
+        return cleaned_data
+
+
+class DeleteEventForm(forms.Form):
+    confirmation = forms.CharField(required=False, label="Подтверждение")
+
+    def __init__(self, *args, event=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.event = event
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        is_confirmed = False
+        confirm_stroke = cleaned_data.get("confirmation")
+        if confirm_stroke:
+            is_confirmed = any(word in str(confirm_stroke).strip().lower() for word in ["confirm", "подтверждаю"])
+
+        if self.event.members.count() > 1 and not is_confirmed:
+            self.add_error("confirmation", "Ошибка подтверждения, введи 'confirm' или 'подтверждаю'.")
 
         return cleaned_data
 
