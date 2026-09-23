@@ -1,8 +1,8 @@
 from django import forms
 from django.forms.models import inlineformset_factory
-from django.core.exceptions import ValidationError
 
 from .models import Event, MinecraftAccount, Team
+
 
 class EventJoinForm(forms.Form):
     minecraft_account = forms.ModelChoiceField(

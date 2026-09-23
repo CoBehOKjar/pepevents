@@ -1,13 +1,10 @@
-from urllib import response
-from xml.etree.ElementTree import tostring
-
-from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.test import TestCase, Client
 from django.urls import reverse
+
 from events.models import Event, Team, EventMember
 from users.models import Profile, MinecraftAccount
-
 
 User = get_user_model()
 

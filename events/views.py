@@ -1,11 +1,9 @@
-from os import name
-
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 
-from .models import Event, EventMember, Team, Roles
 from .forms import EventForm, TeamFormSet
+from .models import Event, EventMember, Team, Roles
 
 
 def event_list(request):
