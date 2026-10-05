@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 
-from .forms import EventForm, TeamFormSet
+from .forms import EventForm, TeamFormSet, DeleteEventForm
 from .models import Event, EventMember, Team, Roles
 
 
@@ -26,11 +26,13 @@ def event_page(request, slug):
     )
 
     current_member = None
+    can_delete = False
     can_edit = False
     can_manage = False
     can_join = False
     if request.user.is_authenticated:
         current_member = event.members.filter(profile=request.user.profile).first()
+        can_delete = event.can_delete(request.user.profile)
         can_edit = event.can_edit(request.user.profile)
         can_manage = event.can_manage(request.user.profile)
         can_join = event.can_join(request.user.profile)
@@ -222,11 +224,35 @@ def event_page(request, slug):
         {
             "event": event,
             "current_member": current_member,
+            "can_delete": can_delete,
             "can_edit": can_edit,
             "can_manage": can_manage,
             "roles": Roles.choices,
         }
     )
+
+
+@login_required
+def delete_event(request, slug):
+    instance = get_object_or_404(Event, slug=slug)
+
+    if not instance.can_delete(request.user.profile):
+        messages.error(request, "У тебя нет прав на удаление этого ивента!")
+        return redirect("event_page", slug=instance.slug)
+
+    if request.method == "POST":
+        delete_event_form = DeleteEventForm(request.POST or None, event=instance)
+
+        if delete_event_form.is_valid():
+            instance.delete()
+
+            messages.success(request, "Ивент удалён")
+            return redirect("events")
+
+        messages.error(request, "; ".join(delete_event_form.errors.get("confirmation", [])))
+
+    return redirect("event_page", slug=instance.slug)
+
 
 @login_required
 def new_event(request):
@@ -262,6 +288,7 @@ def new_event(request):
         "events/new_or_edit_event.html",
         {"event_form": event_form, "team_formset": team_formset}
     )
+
 
 @login_required
 def edit_event(request, slug):
