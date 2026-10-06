@@ -95,15 +95,25 @@ def event_page(request, slug):
                 return redirect("event_page", slug=event.slug)
 
         if "action_leave" in request.POST:
-            if current_member:
+            leave_target = request.POST.get("action_leave")  # "team" or "event"
+
+            if not current_member:
+                messages.error(request, "Ты не был участником ивента!")
+
+            elif leave_target == "event":
                 if current_member.role == "CREATOR" and event.is_last_creator(current_member.profile):
                     messages.error(request, "Единственный создатель не может покинуть ивент!")
                 else:
                     current_member.delete()
                     messages.success(request, "Ты вышел из ивента.")
 
-            else:
-                messages.error(request, "Ты не был участником ивента!")
+            elif leave_target == "team":
+                if current_member.team is None:
+                    messages.error(request, "Ты не состоял в команде!")
+                else:
+                    current_member.team = None
+                    current_member.save()
+                    messages.success(request, "Ты вышел из команды.")
 
             return redirect("event_page", slug=event.slug)
 

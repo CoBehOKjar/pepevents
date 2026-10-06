@@ -417,7 +417,7 @@ class EventPageLeaveTests(TestCase):
 
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
-            "action_leave": "",
+            "action_leave": "event",
         })
 
         messages_list = list(response.wsgi_request._messages)
@@ -434,7 +434,7 @@ class EventPageLeaveTests(TestCase):
 
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
-            "action_leave": ""
+            "action_leave": "event"
         })
 
         messages_list = list(response.wsgi_request._messages)
@@ -446,7 +446,7 @@ class EventPageLeaveTests(TestCase):
 
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
-            "action_leave": "",
+            "action_leave": "event",
         })
 
         messages_list = list(response.wsgi_request._messages)
@@ -463,7 +463,7 @@ class EventPageLeaveTests(TestCase):
 
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
-            "action_leave": "",
+            "action_leave": "event",
         })
 
         messages_list = list(response.wsgi_request._messages)
@@ -598,6 +598,54 @@ class EventPageTeamCreateTests(TestCase):
         self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
 
         self.assertFalse(Team.objects.filter(event=self.event).exists())
+
+
+# Team leave tests
+class EventPageTeamLeaveTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+        self.event = Event.objects.create(
+            name="Event"
+        )
+        self.team = Team.objects.create(
+            event=self.event,
+            name="Team"
+        )
+
+        self.player = create_member(self.event, self.team)
+
+
+    def test_team_member_can_leave_team(self):
+        self.client.force_login(self.player.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "action_leave": "team",
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Ты вышел из команды" in str(m) for m in messages_list))
+        self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
+
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.team, None)
+
+
+    def test_non_team_member_leave_team_does_not_error(self):
+        self.player.team = None # leave player from team to get message error
+        self.player.save()
+
+        self.client.force_login(self.player.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "action_leave": "team",
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Ты не состоял в команде" in str(m) for m in messages_list))
+        self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
 
 
 # Forms tests
