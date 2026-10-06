@@ -6,4 +6,5 @@ urlpatterns = [
     path("new/", views.new_event, name="new"),
     path("<slug:slug>/", views.event_page, name="event_page"),
     path('<slug:slug>/edit/', views.edit_event, name='edit_event'),
+    path('<slug:slug>/delete/', views.delete_event, name='delete_event'),
 ]

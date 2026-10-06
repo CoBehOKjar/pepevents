@@ -697,3 +697,77 @@ class EditEventFormTests(TestCase):
         self.assertEqual(self.event.name, "notEvent")
         self.assertEqual(self.event.slug, "event")
         self.assertEqual(self.event.status, "ONGOING")
+
+
+class DeleteEventFormTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+        self.event = Event.objects.create(
+            name="Event"
+        )
+
+        self.creator = create_member(self.event, role="CREATOR")
+
+
+    def test_cannot_delete_event_without_access(self):
+        self.creator.role = "PLAYER" # changing creator role for no access
+        self.creator.save()
+
+        self.client.force_login(self.creator.profile.user)
+
+        url = reverse("delete_event", args=[self.event.slug])
+        response = self.client.post(url, {
+            "confirmation": "confirm"
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("У тебя нет прав на удаление этого ивента" in str(m) for m in messages_list))
+        self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
+
+
+    def test_can_delete_event_with_one_member(self):
+        self.client.force_login(self.creator.profile.user)
+
+        url = reverse("delete_event", args=[self.event.slug])
+        response = self.client.post(url, {
+            "confirmation": ""
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Ивент удалён" in str(m) for m in messages_list))
+        self.assertRedirects(response, reverse("events"))
+
+        self.assertFalse(Event.objects.filter(pk=self.event.pk).exists())
+
+
+    def test_cannot_delete_event_with_members_without_confirm(self):
+        create_member(self.event) # creating another member to lock delete without confirm
+
+        self.client.force_login(self.creator.profile.user)
+
+        url = reverse("delete_event", args=[self.event.slug])
+        response = self.client.post(url, {
+            "confirmation": ""
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Ошибка подтверждения, введи 'confirm' или 'подтверждаю'" in str(m) for m in messages_list))
+        self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
+
+
+    def test_can_delete_event_with_members_with_confirm(self):
+        create_member(self.event)  # creating another member to lock delete without confirm
+
+        self.client.force_login(self.creator.profile.user)
+
+        url = reverse("delete_event", args=[self.event.slug])
+        response = self.client.post(url, {
+            "confirmation": "confirm"
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Ивент удалён" in str(m) for m in messages_list))
+        self.assertRedirects(response, reverse("events"))
+
+        self.assertFalse(Event.objects.filter(pk=self.event.pk).exists())
