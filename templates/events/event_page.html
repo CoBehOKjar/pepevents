@@ -52,6 +52,24 @@
     <a href="{% url 'edit_event' event.slug %}">Редактировать ивент</a>
 {% endif %}
 
+{% if can_delete %}
+    <button id="delete-event">Удалить ивент</button>
+
+    <dialog id="delete-event-dialog">
+        <h2>Подтверждение удаления ивента</h2>
+
+        <form method="post" action="{% url 'delete_event' event.slug %}">
+            {% csrf_token %}
+            {% if event.members.count > 1 %}
+                <input type="text" name="confirmation" form="main-form" placeholder="'Подтверждаю' или 'Confirm'">
+            {% endif %}
+
+            <button type="submit">Подтвердить удаление</button>
+            <button id="delete-evet-dialog-close" type="reset">Отмена</button>
+        </form>
+    </dialog>
+{% endif %}
+
 {% if messages %}
     <div style="margin-bottom: 20px;">
         {% for message in messages %}
@@ -216,7 +234,7 @@
 
     {% if user.is_authenticated %}
         {% if current_member.team == team %}
-            <button type="submit" form="main-form" name="action_leave" value="{{ team.id }}" style="background-color: #ff4d4d; color: white;">Выйти</button>
+            <button type="submit" form="main-form" name="action_leave" value="team" style="background-color: #ff4d4d; color: white;">Выйти из команды</button>
         {% else %}
             {% if not team.max_players or team.members.count < team.max_players %}
                 <button type="submit" form="main-form" name="action_join" value="{{ team.id }}">Присоединиться</button>
@@ -298,10 +316,25 @@
 {% endfor %}
 </ul>
 
+{% if current_member %}
+    <button type="submit" form="main-form" name="action_leave" value="event" style="background-color: #ff4d4d; color: white;">Выйти из ивента</button>
+{% endif %}
 
 <script>
     const newTeamForm = document.getElementById("create-team-form");
     const newTeamButton = document.getElementById("create-team");
+
+    const deleteEventDialog = document.getElementById("delete-event-dialog");
+    const deleteEventButton = document.getElementById("delete-event");
+    const deleteEventButtonClose = document.getElementById("delete-evet-dialog-close");
+
+    deleteEventButton.addEventListener("click", function () {
+        deleteEventDialog.showModal();
+    });
+
+    deleteEventButtonClose.addEventListener("click", function () {
+        deleteEventDialog.close();
+    });
 
     newTeamButton.addEventListener("click", function () {
         newTeamForm.style.display = "block";
