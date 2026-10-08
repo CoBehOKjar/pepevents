@@ -61,11 +61,11 @@
         <form method="post" action="{% url 'delete_event' event.slug %}">
             {% csrf_token %}
             {% if event.members.count > 1 %}
-                <input type="text" name="confirmation" form="main-form" placeholder="'Подтверждаю' или 'Confirm'">
+                <input type="text" name="confirmation" placeholder="'Подтверждаю' или 'Confirm'">
             {% endif %}
 
             <button type="submit">Подтвердить удаление</button>
-            <button id="delete-evet-dialog-close" type="reset">Отмена</button>
+            <button id="delete-event-dialog-close" type="button">Отмена</button>
         </form>
     </dialog>
 {% endif %}
@@ -326,9 +326,10 @@
 
     const deleteEventDialog = document.getElementById("delete-event-dialog");
     const deleteEventButton = document.getElementById("delete-event");
-    const deleteEventButtonClose = document.getElementById("delete-evet-dialog-close");
+    const deleteEventButtonClose = document.getElementById("delete-event-dialog-close");
 
     deleteEventButton.addEventListener("click", function () {
+        deleteEventDialog.querySelector("form").reset();
         deleteEventDialog.showModal();
     });
 
