@@ -236,6 +236,7 @@ class EventPageRoleTests(TestCase):
         )
 
         self.creator = create_member(self.event, role="CREATOR")
+        self.support = create_member(self.event, role="SUPPORT")
         self.organizer = create_member(self.event, role="ORGANIZER")
         self.player = create_member(self.event)
 
@@ -269,6 +270,23 @@ class EventPageRoleTests(TestCase):
 
         self.creator.refresh_from_db()
         self.assertEqual(self.creator.role, "CREATOR")
+
+
+    def test_cannot_manage_member_with_upper_role(self):
+        self.client.force_login(self.organizer.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "member_id": self.support.id,
+            "action_role": "",
+            "new_role": "PLAYER"
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Нельзя редактировать вышестоящего участника" in str(m) for m in messages_list))
+
+        self.support.refresh_from_db()
+        self.assertEqual(self.support.role, "ORGANIZER")
 
 
     def test_cannot_change_member_role_to_invalid(self):
