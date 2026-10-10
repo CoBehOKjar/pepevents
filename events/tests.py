@@ -241,7 +241,7 @@ class EventPageRoleTests(TestCase):
         self.player = create_member(self.event)
 
 
-    def test_organizer_can_manage_player_role(self):
+    def test_can_manage_lower_role(self):
         self.client.force_login(self.organizer.profile.user)
 
         url = reverse("event_page", args=[self.event.slug])
@@ -251,8 +251,47 @@ class EventPageRoleTests(TestCase):
             "new_role": "ORGANIZER"
         })
 
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any(f"Роль {self.player.minecraft_account.nickname} изменена" in str(m) for m in messages_list))
+
         self.player.refresh_from_db()
         self.assertEqual(self.player.role, "ORGANIZER")
+
+
+    def test_can_manage_same_role(self):
+        organizer2 = create_member(self.event, role="ORGANIZER") # creating organizer for test
+
+        self.client.force_login(self.organizer.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "member_id": organizer2.id,
+            "action_role": "",
+            "new_role": "PLAYER"
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any(f"Роль {organizer2.minecraft_account.nickname} изменена" in str(m) for m in messages_list))
+
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.role, "PLAYER")
+
+
+    def test_cannot_change_role_to_upper_own(self):
+        self.client.force_login(self.organizer.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "member_id": self.player.id,
+            "action_role": "",
+            "new_role": "SUPPORT"
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Нельзя выбирать роль выше своей" in str(m) for m in messages_list))
+
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.role, "PLAYER")
 
 
     def test_cannot_manage_member_with_creator_role(self):

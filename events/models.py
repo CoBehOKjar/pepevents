@@ -12,11 +12,11 @@ class Statuses(models.TextChoices):
     ONGOING = "ONGOING", "Проводится"
     FINISHED = "FINISHED", "Завершён"
 
-class Roles(models.TextChoices):
-    CREATOR = "CREATOR", "Создатель"        #Full access to event
-    SUPPORT = "SUPPORT", "Ст. Организатор"  #Full access without delete
-    ORGANIZER = "ORGANIZER", "Организатор"  #Access to manage members
-    PLAYER = "PLAYER", "Участник"
+class Roles(models.IntegerChoices):
+    CREATOR = 0, "Создатель"        #Full access to event
+    SUPPORT = 1, "Ст. Организатор"  #Full access without delete
+    ORGANIZER = 2, "Организатор"  #Access to manage members
+    PLAYER = 3, "Участник"
 
 
 def _has_role(event, profile, roles):
@@ -194,9 +194,8 @@ class EventMember(models.Model):
         verbose_name="Аккаунт участника",
     )
 
-    role = models.CharField(
+    role = models.IntegerField(
         "Роль участника",
-        max_length=20,
         choices=Roles.choices,
         default=Roles.PLAYER,
     )
