@@ -13,10 +13,10 @@ class Statuses(models.TextChoices):
     FINISHED = "FINISHED", "Завершён"
 
 class Roles(models.IntegerChoices):
-    CREATOR = 0, "Создатель"        #Full access to event
-    SUPPORT = 1, "Ст. Организатор"  #Full access without delete
-    ORGANIZER = 2, "Организатор"  #Access to manage members
-    PLAYER = 3, "Участник"
+    CREATOR = 1, "Создатель"        #Full access to event
+    SUPPORT = 2, "Ст. Организатор"  #Full access without delete
+    ORGANIZER = 3, "Организатор"  #Access to manage members
+    PLAYER = 4, "Участник"
 
 
 def _has_role(event, profile, roles):

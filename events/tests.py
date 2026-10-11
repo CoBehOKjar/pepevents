@@ -247,7 +247,7 @@ class EventPageRoleTests(TestCase):
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
             "member_id": self.player.id,
-            "action_role": "2"
+            "action_role": Roles.ORGANIZER
         })
 
         messages_list = list(response.wsgi_request._messages)
@@ -265,7 +265,7 @@ class EventPageRoleTests(TestCase):
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
             "member_id": organizer2.id,
-            "action_role": "3"
+            "action_role": Roles.PLAYER
         })
 
         messages_list = list(response.wsgi_request._messages)
@@ -281,7 +281,7 @@ class EventPageRoleTests(TestCase):
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
             "member_id": self.player.id,
-            "action_role": "1"
+            "action_role": Roles.SUPPORT
         })
 
         messages_list = list(response.wsgi_request._messages)
@@ -297,7 +297,7 @@ class EventPageRoleTests(TestCase):
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
             "member_id": self.support.id,
-            "action_role": "3"
+            "action_role": Roles.PLAYER
         })
 
         messages_list = list(response.wsgi_request._messages)
@@ -313,7 +313,7 @@ class EventPageRoleTests(TestCase):
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
             "member_id": self.player.id,
-            "action_role": "5"
+            "action_role": "99"
         })
 
         messages_list = list(response.wsgi_request._messages)
@@ -345,7 +345,7 @@ class EventPageRoleTests(TestCase):
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
             "member_id": self.creator.id,
-            "action_role": "3"
+            "action_role": Roles.PLAYER
         })
 
         messages_list = list(response.wsgi_request._messages)
@@ -363,7 +363,7 @@ class EventPageRoleTests(TestCase):
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
             "member_id": self.creator.id,
-            "action_role": "3"
+            "action_role": Roles.PLAYER
         })
 
         messages_list = list(response.wsgi_request._messages)
