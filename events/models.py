@@ -113,13 +113,13 @@ class Event(models.Model):
 
     #Permissions check
     def can_delete(self, profile): #is can delete event
-        return _has_role(self, profile, ["CREATOR"])
+        return _has_role(self, profile, [Roles.CREATOR])
 
     def can_edit(self, profile): #is can edit event and teams
-        return _has_role(self, profile, ["CREATOR", "SUPPORT"])
+        return _has_role(self, profile, [Roles.CREATOR, Roles.SUPPORT])
 
     def can_manage(self, profile): #is can manage event, teams and players
-        return _has_role(self, profile, ["CREATOR", "SUPPORT", "ORGANIZER"])
+        return _has_role(self, profile, [Roles.CREATOR, Roles.SUPPORT, Roles.ORGANIZER])
 
     def can_join(self, profile):
         if self.can_manage(profile):
@@ -127,9 +127,9 @@ class Event(models.Model):
         return self.status not in ("ONGOING", "FINISHED")
 
     def is_last_creator(self, profile):
-        if not _has_role(self, profile, ["CREATOR"]):
+        if not _has_role(self, profile, [Roles.CREATOR]):
             return False
-        return EventMember.objects.filter(event=self, role="CREATOR").count() < 2
+        return EventMember.objects.filter(event=self, role=Roles.CREATOR).count() < 2
 
     def save(self, *args, **kwargs):
         if self.slug == "":
@@ -225,7 +225,7 @@ class EventMember(models.Model):
     def clean(self):
         if self.event.max_players:
             qs = self.event.members.all()
-            qs = qs.exclude(Q(pk=self.pk) | (Q(team__isnull=True) & ~Q(role="PLAYER")))
+            qs = qs.exclude(Q(pk=self.pk) | (Q(team__isnull=True) & ~Q(role=Roles.PLAYER)))
 
             count = qs.count()
 

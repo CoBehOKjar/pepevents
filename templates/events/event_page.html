@@ -192,14 +192,14 @@
                                 {% csrf_token %}
                                 <input type="hidden" name="member_id" value="{{ member.id }}">
                                 <label>Роль:</label>
-                                <select name="new_role" style="width: 100%; margin-bottom: 5px;" required>
+                                <select name="action_role" style="width: 100%; margin-bottom: 5px;" required>
                                     {% for role_code, role_name in roles %}
                                         <option value="{{ role_code }}" {% if member.role == role_code %}selected{% endif %}>
                                             {{ role_name }}
                                         </option>
                                     {% endfor %}
                                 </select>
-                                <button type="submit" name="action_role">Сохранить роль</button>
+                                <button type="submit">Сохранить роль</button>
                             </form>
 
                             <form method="post">
@@ -277,14 +277,14 @@
                                 {% csrf_token %}
                                 <input type="hidden" name="member_id" value="{{ member.id }}">
                                 <label>Роль:</label>
-                                <select name="new_role" style="width: 100%; margin-bottom: 5px;" required>
+                                <select name="action_role" style="width: 100%; margin-bottom: 5px;" required>
                                     {% for role_code, role_name in roles %}
                                         <option value="{{ role_code }}" {% if member.role == role_code %}selected{% endif %}>
                                             {{ role_name }}
                                         </option>
                                     {% endfor %}
                                 </select>
-                                <button type="submit" name="action_role">Сохранить роль</button>
+                                <button type="submit">Сохранить роль</button>
                             </form>
 
                             <form method="post">
@@ -320,6 +320,8 @@
     <button type="submit" form="main-form" name="action_leave" value="event" style="background-color: #ff4d4d; color: white;">Выйти из ивента</button>
 {% endif %}
 
+<!-- [Ваш HTML-код остается прежним, изменения внесены только в тег <script> в самом низу] -->
+
 <script>
     const newTeamForm = document.getElementById("create-team-form");
     const newTeamButton = document.getElementById("create-team");
@@ -328,22 +330,24 @@
     const deleteEventButton = document.getElementById("delete-event");
     const deleteEventButtonClose = document.getElementById("delete-event-dialog-close");
 
-    deleteEventButton.addEventListener("click", function () {
-        deleteEventDialog.querySelector("form").reset();
+    deleteEventButton?.addEventListener("click", function () {
+        deleteEventDialog.querySelector("form")?.reset();
         deleteEventDialog.showModal();
     });
 
-    deleteEventButtonClose.addEventListener("click", function () {
+    deleteEventButtonClose?.addEventListener("click", function () {
         deleteEventDialog.close();
     });
 
-    newTeamButton.addEventListener("click", function () {
-        newTeamForm.style.display = "block";
+    newTeamButton?.addEventListener("click", function () {
+        if (newTeamForm) {
+            newTeamForm.style.display = "block";
+        }
     });
 
     function toggleMenu(memberId) {
         const dropdown = document.getElementById("menu-" + memberId);
-        dropdown.classList.toggle("show");
+        dropdown?.classList.toggle("show");
     }
 
     window.onclick = function(event) {

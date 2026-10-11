@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase, Client
 from django.urls import reverse
 
-from events.models import Event, Team, EventMember
+from events.models import Roles, Event, Team, EventMember
 from users.models import Profile, MinecraftAccount
 
 User = get_user_model()
@@ -16,7 +16,7 @@ def create_player(username):
 
     return profile, mc_acc
 
-def create_member(event, team=None, role="PLAYER", username=None):
+def create_member(event, team=None, role=Roles.PLAYER, username=None):
     username = username or f"player_{EventMember.objects.count()}"
     profile, mc_acc = create_player(username)
     return EventMember.objects.create(event=event, profile=profile, minecraft_account=mc_acc, team=team, role=role)
@@ -58,7 +58,7 @@ class EventModelTests(TestCase):
             create_member(self.event2, team=self.event1Team)
 
     def test_organizer_role_cant_edit_event(self):
-        member = create_member(event=self.event1, role="ORGANIZER")
+        member = create_member(event=self.event1, role=Roles.ORGANIZER)
 
         self.assertFalse(self.event1.can_edit(member.profile))
         self.assertTrue(self.event1.can_manage(member.profile))
@@ -108,7 +108,7 @@ class EventMemberEventLimitTests(TestCase):
 
 
     def test_join_to_full_event_where_organizer_without_team(self):
-        create_member(self.event, role="ORGANIZER")
+        create_member(self.event, role=Roles.ORGANIZER)
         create_member(self.event)
 
         create_member(self.event)
@@ -116,7 +116,7 @@ class EventMemberEventLimitTests(TestCase):
 
     # In theory it shouldnt break, but let it be
     def test_join_to_full_event_with_organizer_without_team(self):
-        create_member(self.event, role="ORGANIZER")
+        create_member(self.event, role=Roles.ORGANIZER)
         create_member(self.event)
         create_member(self.event)
 
@@ -185,7 +185,7 @@ class EventPageKickTests(TestCase):
             name="Event",
         )
 
-        self.creator = create_member(self.event, role="CREATOR")
+        self.creator = create_member(self.event, role=Roles.CREATOR)
         self.player = create_member(self.event)
 
 
@@ -235,9 +235,9 @@ class EventPageRoleTests(TestCase):
             name="Event",
         )
 
-        self.creator = create_member(self.event, role="CREATOR")
-        self.support = create_member(self.event, role="SUPPORT")
-        self.organizer = create_member(self.event, role="ORGANIZER")
+        self.creator = create_member(self.event, role=Roles.CREATOR)
+        self.support = create_member(self.event, role=Roles.SUPPORT)
+        self.organizer = create_member(self.event, role=Roles.ORGANIZER)
         self.player = create_member(self.event)
 
 
@@ -247,34 +247,32 @@ class EventPageRoleTests(TestCase):
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
             "member_id": self.player.id,
-            "action_role": "",
-            "new_role": "ORGANIZER"
+            "action_role": "2"
         })
 
         messages_list = list(response.wsgi_request._messages)
         self.assertTrue(any(f"Роль {self.player.minecraft_account.nickname} изменена" in str(m) for m in messages_list))
 
         self.player.refresh_from_db()
-        self.assertEqual(self.player.role, "ORGANIZER")
+        self.assertEqual(self.player.role, Roles.ORGANIZER)
 
 
     def test_can_manage_same_role(self):
-        organizer2 = create_member(self.event, role="ORGANIZER") # creating organizer for test
+        organizer2 = create_member(self.event, role=Roles.ORGANIZER) # creating organizer for test
 
         self.client.force_login(self.organizer.profile.user)
 
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
             "member_id": organizer2.id,
-            "action_role": "",
-            "new_role": "PLAYER"
+            "action_role": "3"
         })
 
         messages_list = list(response.wsgi_request._messages)
         self.assertTrue(any(f"Роль {organizer2.minecraft_account.nickname} изменена" in str(m) for m in messages_list))
 
         self.player.refresh_from_db()
-        self.assertEqual(self.player.role, "PLAYER")
+        self.assertEqual(self.player.role, Roles.PLAYER)
 
 
     def test_cannot_change_role_to_upper_own(self):
@@ -283,15 +281,14 @@ class EventPageRoleTests(TestCase):
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
             "member_id": self.player.id,
-            "action_role": "",
-            "new_role": "SUPPORT"
+            "action_role": "1"
         })
 
         messages_list = list(response.wsgi_request._messages)
         self.assertTrue(any("Нельзя выбирать роль выше своей" in str(m) for m in messages_list))
 
         self.player.refresh_from_db()
-        self.assertEqual(self.player.role, "PLAYER")
+        self.assertEqual(self.player.role, Roles.PLAYER)
 
 
     def test_cannot_manage_member_with_creator_role(self):
@@ -300,15 +297,14 @@ class EventPageRoleTests(TestCase):
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
             "member_id": self.creator.id,
-            "action_role": "",
-            "new_role": "ORGANIZER"
+            "action_role": "2"
         })
 
         messages_list = list(response.wsgi_request._messages)
-        self.assertTrue(any("Только создатель может редактировать создателя" in str(m) for m in messages_list))
+        self.assertTrue(any("Нельзя редактировать вышестоящего участника" in str(m) for m in messages_list))
 
         self.creator.refresh_from_db()
-        self.assertEqual(self.creator.role, "CREATOR")
+        self.assertEqual(self.creator.role, Roles.CREATOR)
 
 
     def test_cannot_manage_member_with_upper_role(self):
@@ -317,15 +313,14 @@ class EventPageRoleTests(TestCase):
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
             "member_id": self.support.id,
-            "action_role": "",
-            "new_role": "PLAYER"
+            "action_role": "3"
         })
 
         messages_list = list(response.wsgi_request._messages)
         self.assertTrue(any("Нельзя редактировать вышестоящего участника" in str(m) for m in messages_list))
 
         self.support.refresh_from_db()
-        self.assertEqual(self.support.role, "ORGANIZER")
+        self.assertEqual(self.support.role, Roles.SUPPORT)
 
 
     def test_cannot_change_member_role_to_invalid(self):
@@ -334,15 +329,30 @@ class EventPageRoleTests(TestCase):
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
             "member_id": self.player.id,
-            "action_role": "",
-            "new_role": "SHITPOST"
+            "action_role": "5"
         })
 
         messages_list = list(response.wsgi_request._messages)
         self.assertTrue(any("Такой роли не существует" in str(m) for m in messages_list))
 
         self.player.refresh_from_db()
-        self.assertEqual(self.player.role, "PLAYER")
+        self.assertEqual(self.player.role, Roles.PLAYER)
+
+
+    def test_cannot_change_member_role_to_text(self):
+        self.client.force_login(self.organizer.profile.user)
+
+        url = reverse("event_page", args=[self.event.slug])
+        response = self.client.post(url, {
+            "member_id": self.player.id,
+            "action_role": "SHITPOST"
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Такой роли не существует" in str(m) for m in messages_list))
+
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.role, Roles.PLAYER)
 
 
     def test_last_creator_cannot_change_self_role(self):
@@ -351,34 +361,32 @@ class EventPageRoleTests(TestCase):
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
             "member_id": self.creator.id,
-            "action_role": "",
-            "new_role": "PLAYER"
+            "action_role": "3"
         })
 
         messages_list = list(response.wsgi_request._messages)
         self.assertTrue(any("Нельзя менять роль единственного создателя" in str(m) for m in messages_list))
 
         self.creator.refresh_from_db()
-        self.assertEqual(self.creator.role, "CREATOR")
+        self.assertEqual(self.creator.role, Roles.CREATOR)
 
 
     def test_not_last_creator_can_change_self_role(self):
-        create_member(self.event, role="CREATOR")  # add another creator to firs can change role
+        create_member(self.event, role=Roles.CREATOR)  # add another creator to firs can change role
 
         self.client.force_login(self.creator.profile.user)
 
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
             "member_id": self.creator.id,
-            "action_role": "",
-            "new_role": "PLAYER"
+            "action_role": "3"
         })
 
         messages_list = list(response.wsgi_request._messages)
         self.assertTrue(any(f"Роль {self.creator.minecraft_account.nickname} изменена" in str(m) for m in messages_list))
 
         self.creator.refresh_from_db()
-        self.assertEqual(self.creator.role, "PLAYER")
+        self.assertEqual(self.creator.role, Roles.PLAYER)
 
 
 class EventPageMoveTests(TestCase):
@@ -399,8 +407,8 @@ class EventPageMoveTests(TestCase):
             max_players=2,
         )
 
-        self.creator = create_member(self.event, self.team, "CREATOR")
-        self.organizer = create_member(self.event, self.team2, "ORGANIZER")
+        self.creator = create_member(self.event, self.team, Roles.CREATOR)
+        self.organizer = create_member(self.event, self.team2, Roles.ORGANIZER)
         self.player = create_member(self.event, self.team2)
 
 
@@ -465,7 +473,7 @@ class EventPageLeaveTests(TestCase):
             name="Event",
         )
 
-        self.creator = create_member(self.event, role="CREATOR")
+        self.creator = create_member(self.event, role=Roles.CREATOR)
         self.player = create_member(self.event)
 
 
@@ -514,7 +522,7 @@ class EventPageLeaveTests(TestCase):
 
 
     def test_not_last_creator_can_leave_event(self):
-        create_member(self.event, role="CREATOR") # add another creator to firs can leave
+        create_member(self.event, role=Roles.CREATOR) # add another creator to firs can leave
 
         self.client.force_login(self.creator.profile.user)
 
@@ -728,7 +736,7 @@ class NewEventFormTests(TestCase):
         self.assertRedirects(response, reverse("event_page", args=[event.slug]))
 
         creator = EventMember.objects.get(profile=self.profile, event=event)
-        self.assertEqual(creator.role, "CREATOR")
+        self.assertEqual(creator.role, Roles.CREATOR)
 
 
 class EditEventFormTests(TestCase):
@@ -740,7 +748,7 @@ class EditEventFormTests(TestCase):
         )
 
         self.player = create_member(self.event)
-        self.support = create_member(self.event, role="SUPPORT")
+        self.support = create_member(self.event, role=Roles.SUPPORT)
 
 
     def test_cannot_open_edit_event_page_without_access(self):
@@ -812,11 +820,11 @@ class DeleteEventFormTests(TestCase):
             name="Event"
         )
 
-        self.creator = create_member(self.event, role="CREATOR")
+        self.creator = create_member(self.event, role=Roles.CREATOR)
 
 
     def test_cannot_delete_event_without_access(self):
-        self.creator.role = "PLAYER" # changing creator role for no access
+        self.creator.role = Roles.PLAYER # changing creator role for no access
         self.creator.save()
 
         self.client.force_login(self.creator.profile.user)

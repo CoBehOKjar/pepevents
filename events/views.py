@@ -52,15 +52,21 @@ def event_page(request, slug):
             if member_id:
                 target_member = get_object_or_404(EventMember, id=member_id, event=event)
 
-                #Creator edit protect
-                if target_member.role == "CREATOR" and current_member.role != "CREATOR":
-                    messages.error(request, "Только создатель может редактировать создателя!")
+                #Upper role edit protect
+                if target_member.role < current_member.role:
+                    messages.error(request, "Нельзя редактировать вышестоящего участника!")
                     return redirect("event_page", slug=event.slug)
 
                 if "action_role" in request.POST:
-                    new_role = request.POST.get("new_role")
+                    new_role = request.POST.get("action_role")
+                    new_role = int(new_role) if new_role.strip().isdigit() else None
+
                     if new_role in dict(Roles.choices):
-                        if target_member.role == "CREATOR" and new_role != "CREATOR" and event.is_last_creator(target_member.profile):
+                        if new_role < current_member.role:
+                            messages.error(request, "Нельзя выбирать роль выше своей")
+                            return redirect("event_page", slug=event.slug)
+
+                        if target_member.role == Roles.CREATOR and new_role != Roles.CREATOR and event.is_last_creator(target_member.profile):
                             messages.error(request, "Нельзя менять роль единственного создателя!")
                             return redirect("event_page", slug=event.slug)
 
@@ -101,7 +107,7 @@ def event_page(request, slug):
                 messages.error(request, "Ты не был участником ивента!")
 
             elif leave_target == "event":
-                if current_member.role == "CREATOR" and event.is_last_creator(current_member.profile):
+                if current_member.role == Roles.CREATOR and event.is_last_creator(current_member.profile):
                     messages.error(request, "Единственный создатель не может покинуть ивент!")
                 else:
                     current_member.delete()
@@ -147,7 +153,7 @@ def event_page(request, slug):
                 EventMember.objects.create(
                     event=event,
                     profile=request.user.profile,
-                    role="PLAYER",
+                    role=Roles.PLAYER,
                     minecraft_account=minecraft_account,
                     team=team,
                 )
@@ -220,7 +226,7 @@ def event_page(request, slug):
                 EventMember.objects.create(
                     event=event,
                     profile=request.user.profile,
-                    role="PLAYER",
+                    role=Roles.PLAYER,
                     minecraft_account=minecraft_account,
                     team=new_team,
                 )
@@ -281,7 +287,7 @@ def new_event(request):
             EventMember.objects.create(
                 event=event,
                 profile=request.user.profile,
-                role="CREATOR",
+                role=Roles.CREATOR,
                 minecraft_account=minecraft_account,
             )
 
