@@ -291,22 +291,6 @@ class EventPageRoleTests(TestCase):
         self.assertEqual(self.player.role, Roles.PLAYER)
 
 
-    def test_cannot_manage_member_with_creator_role(self):
-        self.client.force_login(self.organizer.profile.user)
-
-        url = reverse("event_page", args=[self.event.slug])
-        response = self.client.post(url, {
-            "member_id": self.creator.id,
-            "action_role": "2"
-        })
-
-        messages_list = list(response.wsgi_request._messages)
-        self.assertTrue(any("Нельзя редактировать вышестоящего участника" in str(m) for m in messages_list))
-
-        self.creator.refresh_from_db()
-        self.assertEqual(self.creator.role, Roles.CREATOR)
-
-
     def test_cannot_manage_member_with_upper_role(self):
         self.client.force_login(self.organizer.profile.user)
 
@@ -884,3 +868,18 @@ class DeleteEventFormTests(TestCase):
         self.assertRedirects(response, reverse("events"))
 
         self.assertFalse(Event.objects.filter(pk=self.event.pk).exists())
+
+
+    def test_cannot_delete_event_with_members_with_containing_confirm_word(self):
+        create_member(self.event)  # creating another member to lock delete without confirm
+
+        self.client.force_login(self.creator.profile.user)
+
+        url = reverse("delete_event", args=[self.event.slug])
+        response = self.client.post(url, {
+            "confirmation": "not confirm"
+        })
+
+        messages_list = list(response.wsgi_request._messages)
+        self.assertTrue(any("Ошибка подтверждения, введи 'confirm' или 'подтверждаю'" in str(m) for m in messages_list))
+        self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))

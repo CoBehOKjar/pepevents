@@ -68,7 +68,7 @@ class DeleteEventForm(forms.Form):
         is_confirmed = False
         confirm_stroke = cleaned_data.get("confirmation")
         if confirm_stroke:
-            is_confirmed = any(word in str(confirm_stroke).strip().lower() for word in ["confirm", "подтверждаю"])
+            is_confirmed = str(confirm_stroke).strip().lower() in ["confirm", "подтверждаю"]
 
         if self.event.members.count() > 1 and not is_confirmed:
             self.add_error("confirmation", "Ошибка подтверждения, введи 'confirm' или 'подтверждаю'.")
