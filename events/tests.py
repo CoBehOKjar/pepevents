@@ -132,6 +132,8 @@ class EventMemberEventStatusTests(TestCase):
 
 
 
+
+
 ### View tests
 class EventPageJoinTests(TestCase):
     def setUp(self):
@@ -883,3 +885,31 @@ class DeleteEventFormTests(TestCase):
         messages_list = list(response.wsgi_request._messages)
         self.assertTrue(any("Ошибка подтверждения, введи 'confirm' или 'подтверждаю'" in str(m) for m in messages_list))
         self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
+
+
+class EventPageMiscTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+        self.event1 = Event.objects.create(
+            name="Event1"
+        )
+        self.event2 = Event.objects.create(
+            name="Event2"
+        )
+
+        self.creator = create_member(self.event1, role=Roles.CREATOR)
+        self.player = create_member(self.event2)
+
+
+    def test_404_on_try_manage_member_from_other_event(self):
+        self.client.force_login(self.creator.profile.user)
+
+        url = reverse("event_page", args=[self.event1.slug])
+        response = self.client.post(url, {
+            "action_kick": "",
+            "member_id": self.player.id
+        })
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(EventMember.objects.filter(pk=self.player.pk).exists())

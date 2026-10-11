@@ -20,7 +20,8 @@ def event_list(request):
 def event_page(request, slug):
     event = get_object_or_404(
         Event.objects.prefetch_related(
-            "teams__members__minecraft_account"
+            "teams__members__minecraft_account",
+            "members__minecraft_account"
         ),
         slug=slug
     )
