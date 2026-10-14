@@ -473,8 +473,7 @@ class EventPageMoveTests(TestCase):
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
             "member_id": self.player.id,
-            "action_team": "",
-            "new_team": self.team.id
+            "action_team": self.team.id
         })
 
         messages_list = list(response.wsgi_request._messages)
@@ -490,8 +489,7 @@ class EventPageMoveTests(TestCase):
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
             "member_id": self.player.id,
-            "action_team": "",
-            "new_team": "none"
+            "action_team": "none"
         })
 
         messages_list = list(response.wsgi_request._messages)
@@ -509,8 +507,7 @@ class EventPageMoveTests(TestCase):
         url = reverse("event_page", args=[self.event.slug])
         response = self.client.post(url, {
             "member_id": self.player.id,
-            "action_team": "",
-            "new_team": self.team.id
+            "action_team": self.team.id
         })
 
         messages_list = list(response.wsgi_request._messages)

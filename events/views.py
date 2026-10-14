@@ -78,7 +78,7 @@ def event_page(request, slug):
                         messages.error(request, "Такой роли не существует!")
 
                 elif "action_team" in request.POST:
-                    new_team_id = request.POST.get("new_team")
+                    new_team_id = request.POST.get("action_team")
                     if new_team_id == "none":
                         target_member.team = None
                         target_member.save()
