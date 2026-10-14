@@ -23,6 +23,7 @@ def create_member(event, team=None, role=Roles.PLAYER, username=None):
 
 
 ### Models Tests
+# Event model
 class EventTests(TestCase):
     def test_slug_is_generated_from_name(self):
         event = Event.objects.create(
@@ -52,18 +53,77 @@ class EventModelTests(TestCase):
             name="Team1"
         )
 
-
-    def test_join_to_team_from_other_event(self):
+    def test_cannot_join_to_team_from_other_event(self):
         with self.assertRaises(ValidationError):
             create_member(self.event2, team=self.event1Team)
 
-    def test_organizer_role_cant_edit_event(self):
-        member = create_member(event=self.event1, role=Roles.ORGANIZER)
 
-        self.assertFalse(self.event1.can_edit(member.profile))
-        self.assertTrue(self.event1.can_manage(member.profile))
+class EventModelRolesTests(TestCase):
+    def setUp(self):
+        self.event = Event.objects.create(
+            name="Event"
+        )
+        self.creator = create_member(self.event, role=Roles.CREATOR, username="Creator")
+        self.support = create_member(self.event, role=Roles.SUPPORT, username="Support")
+        self.organizer = create_member(self.event, role=Roles.ORGANIZER, username="Organizer")
+        self.player = create_member(self.event, username="Player")
+        self.nm_profile, self.nm_mc_acc = create_player("Notamember")
+
+    def test_access_matrix_to_manage_edit_delete(self):
+        access_matrix = {
+            self.nm_profile: {"can_delete": False, "can_edit": False, "can_manage": False},
+            self.player.profile: {"can_delete": False, "can_edit": False, "can_manage": False},
+            self.organizer.profile: {"can_delete": False, "can_edit": False, "can_manage": True},
+            self.support.profile: {"can_delete": False, "can_edit": True, "can_manage": True},
+            self.creator.profile: {"can_delete": True, "can_edit": True, "can_manage": True},
+        }
+
+        for profile, permissions in access_matrix.items():
+            for action, expected in permissions.items():
+                with self.subTest():
+                    method = getattr(self.event, action)
+
+                    result = method(profile)
+
+                    self.assertEqual(
+                        result,
+                        expected,
+                        f"Expected: {expected} for {profile} on {action}(). Result: {result}"
+                    )
 
 
+class EventModelStatusTests(TestCase):
+    def setUp(self):
+        self.event = Event.objects.create(
+            name="Event",
+        )
+
+        self.organizer = create_member(self.event, role=Roles.ORGANIZER, username="Organizer")
+        self.player = create_member(self.event, username="Player")
+        self.nm_profile, self.nm_mc_acc = create_player("Notamember")
+
+    def test_access_matrix_to_can_join(self):
+        access_matrix = {
+            self.nm_profile:        {"WIP": True, "RECRUITMENT": True, "READY": True, "ONGOING": False, "FINISHED": False},
+            self.player.profile:    {"WIP": True, "RECRUITMENT": True, "READY": True, "ONGOING": False, "FINISHED": False},
+            self.organizer.profile: {"WIP": True, "RECRUITMENT": True, "READY": True, "ONGOING": True,  "FINISHED": True},
+        }
+
+        for profile, permissions in access_matrix.items():
+            for status, expected in permissions.items():
+                with self.subTest():
+                    self.event.status = status
+
+                    result = self.event.can_join(profile)
+                    self.assertEqual(
+                        result,
+                        expected,
+                        f"Expected: {expected} for {profile} on {status}. Result: {result}"
+                    )
+
+
+
+# EventMember model
 class EventMemberTeamLimitTests(TestCase):
     def setUp(self):
         self.event = Event.objects.create(
@@ -124,15 +184,6 @@ class EventMemberEventLimitTests(TestCase):
             create_member(self.event)
 
 
-class EventMemberEventStatusTests(TestCase):
-    def setUp(self):
-        self.event = Event.objects.create(
-            name="Event",
-        )
-
-
-
-
 
 ### View tests
 class EventPageJoinTests(TestCase):
@@ -150,7 +201,7 @@ class EventPageJoinTests(TestCase):
 
     def test_cannot_join_when_event_ongoing_or_finished(self):
         for status in ("ONGOING", "FINISHED"):
-            with self.subTest(status=status):
+            with self.subTest():
                 profile, mc_acc = create_player(f"user_{status}")
                 self.client.force_login(profile.user)
                 self.event.status = status
@@ -165,7 +216,7 @@ class EventPageJoinTests(TestCase):
 
     def test_can_join_when_event_wip_recruitment_ready(self):
         for status in ("WIP", "RECRUITMENT", "READY"):
-            with self.subTest(status=status):
+            with self.subTest():
                 profile, mc_acc = create_player(f"user_{status}")
                 self.client.force_login(profile.user)
                 self.event.status = status
