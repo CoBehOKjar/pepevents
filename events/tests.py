@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.test import TestCase, Client
 from django.urls import reverse
+from unittest.mock import patch
 
 from events.models import Roles, Event, Team, EventMember
 from users.models import Profile, MinecraftAccount
@@ -994,4 +995,28 @@ class EventPageMiscTests(TestCase):
         })
 
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(EventMember.objects.filter(pk=self.player.pk).exists())
+
+
+class CurrentMemberNoneTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+        self.event = Event.objects.create(
+            name="Event"
+        )
+
+        self.player = create_member(self.event, username="Victim")
+        self.ghost, _ = create_player("Ghost")  # not a current_member
+
+    def test_manage_action_without_membership_does_not_crash(self):
+        self.client.force_login(self.ghost.user)
+        url = reverse("event_page", args=[self.event.slug])
+
+        with patch.object(Event, "can_manage", return_value=True):
+            response = self.client.post(url, {
+                "member_id": self.player.id,
+                "action_kick": "",
+            })
+
         self.assertTrue(EventMember.objects.filter(pk=self.player.pk).exists())

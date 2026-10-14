@@ -47,7 +47,7 @@ def event_page(request, slug):
         if account_id:
             minecraft_account = request.user.profile.minecraft_accounts.filter(id=account_id).first()
 
-        if can_manage:
+        if current_member and can_manage:
             member_id = request.POST.get("member_id")
 
             if member_id:
