@@ -201,7 +201,7 @@ class EventPageJoinTests(TestCase):
 
     def test_cannot_join_when_event_ongoing_or_finished(self):
         for status in ("ONGOING", "FINISHED"):
-            with self.subTest():
+            with self.subTest(status=status):
                 profile, mc_acc = create_player(f"user_{status}")
                 self.client.force_login(profile.user)
                 self.event.status = status
@@ -216,7 +216,7 @@ class EventPageJoinTests(TestCase):
 
     def test_can_join_when_event_wip_recruitment_ready(self):
         for status in ("WIP", "RECRUITMENT", "READY"):
-            with self.subTest():
+            with self.subTest(status=status):
                 profile, mc_acc = create_player(f"user_{status}")
                 self.client.force_login(profile.user)
                 self.event.status = status
@@ -228,6 +228,23 @@ class EventPageJoinTests(TestCase):
                     "minecraft_account": mc_acc.id,
                 })
                 self.assertTrue(EventMember.objects.filter(event=self.event, profile=profile).exists())
+
+    def test_organizers_can_join_when_event_ongoing_or_finished(self):
+        for status in ("ONGOING", "FINISHED"):
+            with self.subTest(status=status):
+                organizer = create_member(self.event, role=Roles.ORGANIZER)
+                self.client.force_login(organizer.profile.user)
+                self.event.status = status
+                self.event.save()
+
+                url = reverse("event_page", args=[self.event.slug])
+                response = self.client.post(url, {
+                    "action_join": self.team.id,
+                    "minecraft_account": organizer.minecraft_account.id,
+                })
+
+                organizer.refresh_from_db()
+                self.assertEqual(organizer.team, self.team)
 
 
 class EventPageKickTests(TestCase):
@@ -938,6 +955,7 @@ class DeleteEventFormTests(TestCase):
         self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
 
 
+# Misc
 class EventPageMiscTests(TestCase):
     def setUp(self):
         self.client = Client()
@@ -963,4 +981,17 @@ class EventPageMiscTests(TestCase):
         })
 
         self.assertEqual(response.status_code, 404)
+        self.assertTrue(EventMember.objects.filter(pk=self.player.pk).exists())
+
+
+    def test_manage_member_in_event_without_membership_does_nothing(self):
+        self.client.force_login(self.creator.profile.user)
+
+        url = reverse("event_page", args=[self.event2.slug])
+        response = self.client.post(url, {
+            "action_kick": "",
+            "member_id": self.player.id
+        })
+
+        self.assertEqual(response.status_code, 200)
         self.assertTrue(EventMember.objects.filter(pk=self.player.pk).exists())
