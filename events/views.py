@@ -6,6 +6,13 @@ from .forms import EventForm, TeamFormSet, DeleteEventForm
 from .models import Event, EventMember, Team, Roles
 
 
+def _to_int(value): # Integer or None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def event_list(request):
     events = Event.objects.all()
 
