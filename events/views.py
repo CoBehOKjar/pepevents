@@ -133,7 +133,7 @@ def event_page(request, slug):
             team_id = request.POST.get("action_join")
             team = event.teams.get(id=team_id)
 
-            if not account_id:
+            if not minecraft_account:
                 messages.error(request, "Необходимо выбрать Minecraft аккаунт для  участия!")
                 return redirect("event_page", slug=event.slug)
 
@@ -171,7 +171,7 @@ def event_page(request, slug):
             team_color = request.POST.get("new_team_color")
             team_max_players = request.POST.get("new_team_max_players")
 
-            if not account_id:
+            if not minecraft_account:
                 messages.error(request, "Необходимо выбрать Minecraft аккаунт!")
                 return redirect("event_page", slug=event.slug)
 

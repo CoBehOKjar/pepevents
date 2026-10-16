@@ -953,6 +953,217 @@ class DeleteEventFormTests(TestCase):
         self.assertRedirects(response, reverse("event_page", args=[self.event.slug]))
 
 
+# POSTs
+class EventPageInvalidPOSTTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+        self.event = Event.objects.create(
+            name="Event"
+        )
+        self.team = Team.objects.create(
+            event=self.event,
+            name="Team"
+        )
+
+        self.other_event = Event.objects.create(
+            name="Other event"
+        )
+        self.other_team = Team.objects.create(
+            event=self.other_event,
+            name="Other Team"
+        )
+
+        self.creator = create_member(self.event, role=Roles.CREATOR)
+        self.player = create_member(self.event)
+        self.other_member = create_member(self.other_event)
+        self.other_profile, self.other_mc_acc = create_player("Other")
+
+    def test_invalid_member_id(self):
+        self.client.force_login(self.creator.profile.user)
+        url = reverse("event_page", args=[self.event.slug])
+
+        actions = {
+            "kick": {"action_kick": ""},
+            "role": {"action_role": str(Roles.PLAYER.value)},
+            "team": {"action_team": "none"},
+        }
+        bad_ids = ["abc", "", "999999", self.other_member.id]
+
+        for action_name, extra in actions.items():
+            for bad_id in bad_ids:
+                with self.subTest(action=action_name, member_id=bad_id):
+                    members_before = EventMember.objects.count()
+
+                    response = self.client.post(url, {**extra, "member_id": bad_id})
+
+                    self.assertRedirects(response, url)
+                    self.assertTrue(any("Участник не найден" in str(m)
+                                        for m in response.wsgi_request._messages)
+                                    )
+                    self.assertEqual(EventMember.objects.count(), members_before)
+
+
+    def test_invalid_minecraft_account(self):
+        self.client.force_login(self.creator.profile.user)
+        url = reverse("event_page", args=[self.event.slug])
+
+        actions = {
+            "join": {"action_join": self.team.id},
+            "create": {"action_create": "", "new_team_name": "New Team"},
+        }
+        bad_ids = ["abc", "999999", self.other_mc_acc.id]
+
+        for action_name, extra in actions.items():
+            for bad_id in bad_ids:
+                with self.subTest(action=action_name, minecraft_account=bad_id):
+                    members_before = EventMember.objects.count()
+
+                    response = self.client.post(url, {**extra, "minecraft_account": bad_id})
+
+                    self.assertRedirects(response, url)
+                    self.assertTrue(any("Minecraft аккаунт не найден" in str(m)
+                                        for m in response.wsgi_request._messages)
+                                    )
+                    self.assertEqual(EventMember.objects.count(), members_before)
+
+
+    def test_invalid_action_role(self):
+        self.client.force_login(self.creator.profile.user)
+        url = reverse("event_page", args=[self.event.slug])
+
+        actions = {
+            "role": {"member_id": self.player.id},
+        }
+        bad_ids = ["abc", "", "999999", "²"]
+
+        for action_name, extra in actions.items():
+            for bad_id in bad_ids:
+                with self.subTest(action=action_name, action_role=bad_id):
+                    role_before = self.player.role
+
+                    response = self.client.post(url, {**extra, "action_role": bad_id})
+
+                    self.assertRedirects(response, url)
+                    self.assertTrue(any("Такой роли не существует" in str(m)
+                                        for m in response.wsgi_request._messages)
+                                    )
+                    self.player.refresh_from_db()
+                    self.assertEqual(self.player.role, role_before)
+
+
+    def test_invalid_action_team(self):
+        self.client.force_login(self.creator.profile.user)
+        url = reverse("event_page", args=[self.event.slug])
+
+        bad_ids = ["abc", "999999", "²", self.other_team.id]
+
+        for bad_id in bad_ids:
+            with self.subTest(action_team=bad_id):
+                team_before = self.player.team
+
+                response = self.client.post(url, {"member_id": self.player.id, "action_team": bad_id})
+
+                self.assertRedirects(response, url)
+                self.assertTrue(any("Команда не найдена" in str(m)
+                                    for m in response.wsgi_request._messages)
+                                )
+                self.player.refresh_from_db()
+                self.assertEqual(self.player.team, team_before)
+
+
+    def test_invalid_action_leave(self):
+        self.client.force_login(self.player.profile.user)
+        url = reverse("event_page", args=[self.event.slug])
+
+        bad_ids = ["abc", "", "999999", "²"]
+
+        for bad_id in bad_ids:
+            with self.subTest(action_leave=bad_id):
+                members_before = EventMember.objects.count()
+
+                response = self.client.post(url, {"action_leave": bad_id})
+
+                self.assertRedirects(response, url)
+                self.assertTrue(any("Неизвестный аргумент выхода" in str(m)
+                                    for m in response.wsgi_request._messages)
+                                )
+                self.assertEqual(EventMember.objects.count(), members_before)
+
+
+    def test_invalid_action_join(self):
+        self.client.force_login(self.other_profile.user)
+        url = reverse("event_page", args=[self.event.slug])
+
+        bad_ids = ["abc", "999999", "²", self.other_team.id]
+
+        for bad_id in bad_ids:
+            with self.subTest(action_join=bad_id):
+                members_before = EventMember.objects.count()
+
+                response = self.client.post(url, {"minecraft_account": self.other_mc_acc.id, "action_join": bad_id})
+
+                self.assertRedirects(response, url)
+                self.assertTrue(any("Команда не найдена" in str(m)
+                                    for m in response.wsgi_request._messages)
+                                )
+                self.assertEqual(EventMember.objects.count(), members_before)
+
+
+    def test_invalid_new_team_color(self):
+        self.client.force_login(self.creator.profile.user)
+        url = reverse("event_page", args=[self.event.slug])
+
+        actions = {
+            "create": {
+                "action_create": "",
+                "new_team_name": "New Team",
+                "minecraft_account": self.creator.minecraft_account.id
+            },
+        }
+        bad_ids = ["abc", "", "9999999", "²"]
+
+        for action_name, extra in actions.items():
+            for bad_id in bad_ids:
+                with self.subTest(action=action_name, new_team_color=bad_id):
+                    teams_before = Team.objects.count()
+
+                    response = self.client.post(url, {**extra, "new_team_color": bad_id})
+
+                    self.assertRedirects(response, url)
+                    self.assertTrue(any("Неизвестный цвет" in str(m)
+                                        for m in response.wsgi_request._messages)
+                                    )
+                    self.assertEqual(Team.objects.count(), teams_before)
+
+
+    def test_invalid_new_team_max_players(self):
+        self.client.force_login(self.creator.profile.user)
+        url = reverse("event_page", args=[self.event.slug])
+
+        actions = {
+            "create": {
+                "action_create": "",
+                "new_team_name": "New Team",
+                "minecraft_account": self.creator.minecraft_account.id
+            },
+        }
+        bad_ids = ["abc", "-5", "²", "0"]
+
+        for action_name, extra in actions.items():
+            for bad_id in bad_ids:
+                with self.subTest(action=action_name, new_team_max_players=bad_id):
+                    teams_before = Team.objects.count()
+
+                    response = self.client.post(url, {**extra, "new_team_max_players": bad_id})
+
+                    self.assertRedirects(response, url)
+                    self.assertTrue(any("Некорректный лимит игроков" in str(m)
+                                        for m in response.wsgi_request._messages)
+                                    )
+                    self.assertEqual(Team.objects.count(), teams_before)
+
+
 # Misc
 class EventPageMiscTests(TestCase):
     def setUp(self):
